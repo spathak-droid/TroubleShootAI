@@ -6,6 +6,8 @@ with answers grounded in bundle evidence rather than general knowledge.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 from loguru import logger
 
 from bundle_analyzer.ai.client import BundleAnalyzerClient
@@ -88,6 +90,47 @@ class InterviewSession:
             logger.error("Interview API call failed: {}", exc)
             self.history.append({"role": "assistant", "content": error_msg})
             return error_msg
+
+    async def ask_stream(self, question: str) -> AsyncIterator[str]:
+        """Stream an answer token-by-token for real-time display.
+
+        Falls back to yielding the full response at once for local commands.
+
+        Args:
+            question: The user's question or command.
+
+        Yields:
+            Text chunks as they are generated.
+        """
+        # Handle special commands locally (yield all at once)
+        command_response = self._handle_command(question)
+        if command_response is not None:
+            self.history.append({"role": "user", "content": question})
+            self.history.append({"role": "assistant", "content": command_response})
+            yield command_response
+            return
+
+        user_message = self._build_user_message(question)
+        self.history.append({"role": "user", "content": question})
+
+        full_response: list[str] = []
+        try:
+            async for chunk in self.client.stream(
+                system=INTERVIEW_SYSTEM_PROMPT,
+                user=user_message,
+                max_tokens=2048,
+                temperature=0.2,
+            ):
+                full_response.append(chunk)
+                yield chunk
+
+            response_text = "".join(full_response)
+            self.history.append({"role": "assistant", "content": response_text})
+        except Exception as exc:
+            error_msg = f"Unable to process question: {exc}"
+            logger.error("Interview streaming failed: {}", exc)
+            self.history.append({"role": "assistant", "content": error_msg})
+            yield error_msg
 
     def _handle_command(self, question: str) -> str | None:
         """Handle special commands that can be answered from local data.

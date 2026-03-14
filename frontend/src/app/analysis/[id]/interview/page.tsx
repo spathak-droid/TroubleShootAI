@@ -4,7 +4,7 @@ import { use, useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Send, Loader2, MessageSquare, Bot, User, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { createInterview, askQuestion, getInterviewHistory } from "@/lib/api";
+import { createInterview, askQuestionStream, getInterviewHistory } from "@/lib/api";
 import type { InterviewMessage } from "@/lib/types";
 
 const SUGGESTED_QUESTIONS = [
@@ -69,25 +69,62 @@ export default function AskPage({
       setInput("");
       setLoading(true);
 
+      // Add a placeholder assistant message for streaming
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "" },
+      ]);
+
       try {
-        const response = await askQuestion(
+        await askQuestionStream(
           bundleId,
           sessionId,
           question.trim(),
+          (token) => {
+            setMessages((prev) => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              if (last && last.role === "assistant") {
+                updated[updated.length - 1] = {
+                  ...last,
+                  content: last.content + token,
+                };
+              }
+              return updated;
+            });
+          },
+          () => {
+            setLoading(false);
+          },
+          (err) => {
+            setMessages((prev) => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              if (last && last.role === "assistant") {
+                updated[updated.length - 1] = {
+                  ...last,
+                  content:
+                    "Sorry, I encountered an error processing your question. Please try again.",
+                };
+              }
+              return updated;
+            });
+            setLoading(false);
+          },
         );
-        const aiMsg: InterviewMessage = {
-          role: "assistant",
-          content: response.answer,
-        };
-        setMessages((prev) => [...prev, aiMsg]);
       } catch {
-        const errMsg: InterviewMessage = {
-          role: "assistant",
-          content:
-            "Sorry, I encountered an error processing your question. Please try again.",
-        };
-        setMessages((prev) => [...prev, errMsg]);
-      } finally {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last && last.role === "assistant") {
+            updated[updated.length - 1] = {
+              ...last,
+              content:
+                "Sorry, I encountered an error processing your question. Please try again.",
+            };
+          }
+          return updated;
+        });
         setLoading(false);
       }
     },
@@ -217,7 +254,7 @@ export default function AskPage({
             </motion.div>
           ))}
 
-          {loading && (
+          {loading && messages.length > 0 && messages[messages.length - 1]?.content === "" && (
             <div className="flex items-center gap-3">
               <div
                 className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl"

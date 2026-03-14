@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 from loguru import logger
 
@@ -102,6 +104,52 @@ async def ask_question(
     return InterviewResponse(
         answer=answer,
         history=interview.history,
+    )
+
+
+@router.post("/{session_id}/ask/stream")
+async def ask_question_stream(
+    session_id: str,
+    request: InterviewRequest,
+    session: BundleSession = Depends(get_session),
+) -> StreamingResponse:
+    """Stream an answer token-by-token via Server-Sent Events.
+
+    Args:
+        session_id: The ask session identifier.
+        request: The question to ask.
+        session: The parent bundle session.
+
+    Returns:
+        StreamingResponse with SSE text/event-stream content.
+    """
+    interview = session.interview_sessions.get(session_id)
+    if interview is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Ask session {session_id} not found",
+        )
+
+    async def event_generator():
+        try:
+            async for chunk in interview.ask_stream(request.question):
+                data = json.dumps({"token": chunk})
+                yield f"data: {data}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            logger.error("Stream error: {}", exc)
+            data = json.dumps({"error": str(exc)})
+            yield f"data: {data}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
