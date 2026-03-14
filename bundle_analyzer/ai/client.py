@@ -94,8 +94,8 @@ class BundleAnalyzerClient:
                 if self._provider == "openrouter"
                 else None
             )
-            self._sync_client = OpenAI(api_key=self._api_key, base_url=base_url)
-            self._async_client = AsyncOpenAI(api_key=self._api_key, base_url=base_url)
+            self._sync_client = OpenAI(api_key=self._api_key, base_url=base_url, timeout=120.0)
+            self._async_client = AsyncOpenAI(api_key=self._api_key, base_url=base_url, timeout=120.0)
             self._call_async = self._openai_async
             self._call_sync = self._openai_sync
         else:
@@ -226,11 +226,18 @@ class BundleAnalyzerClient:
 
             except Exception as exc:
                 err_name = type(exc).__name__.lower()
-                if "ratelimit" in err_name or "rate_limit" in err_name or "429" in str(exc):
+                is_retryable = (
+                    "ratelimit" in err_name
+                    or "rate_limit" in err_name
+                    or "429" in str(exc)
+                    or "timeout" in err_name
+                )
+                if is_retryable:
                     last_error = exc
                     backoff = 2**attempt
                     logger.warning(
-                        "Rate limited (attempt {attempt}/{max}), retrying in {backoff}s",
+                        "Retryable error {err} (attempt {attempt}/{max}), retrying in {backoff}s",
+                        err=err_name,
                         attempt=attempt + 1,
                         max=self.max_retries,
                         backoff=backoff,

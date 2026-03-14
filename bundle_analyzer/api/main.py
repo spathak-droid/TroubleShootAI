@@ -18,8 +18,9 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 load_dotenv()  # also try cwd
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from loguru import logger
@@ -89,6 +90,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Global exception handler to ensure CORS headers on 500s
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        """Catch unhandled exceptions so CORS headers are still present."""
+        logger.error("Unhandled error on {}: {}", request.url.path, exc)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error. Please try again."},
+        )
 
     # Include all routers under /api/v1
     api_prefix = "/api/v1"

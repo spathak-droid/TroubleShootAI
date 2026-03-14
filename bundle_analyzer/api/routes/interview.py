@@ -90,7 +90,14 @@ async def ask_question(
             detail=f"Ask session {session_id} not found",
         )
 
-    answer = await interview.ask(request.question)
+    try:
+        answer = await interview.ask(request.question)
+    except Exception as exc:
+        logger.error("Interview AI call failed: {}", exc)
+        raise HTTPException(
+            status_code=504,
+            detail="AI provider timed out. Please try again.",
+        ) from exc
 
     return InterviewResponse(
         answer=answer,
