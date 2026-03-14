@@ -4,6 +4,7 @@ import { use, useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Send, Loader2, MessageSquare, Bot, User, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { createInterview, askQuestionStream, getInterviewHistory } from "@/lib/api";
 import type { InterviewMessage } from "@/lib/types";
 
@@ -235,7 +236,7 @@ export default function AskPage({
               >
                 {msg.role === "assistant" ? (
                   <div className="prose-chat text-sm">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>
                 ) : (
                   <p className="whitespace-pre-wrap text-sm">
