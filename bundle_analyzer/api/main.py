@@ -75,11 +75,12 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS middleware -- default allows Next.js dev server
+    # CORS middleware -- allows Next.js dev server + production frontend
     allowed_origins = os.environ.get(
         "CORS_ORIGINS",
         "http://localhost:3000,http://127.0.0.1:3000",
     ).split(",")
+    allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
 
     app.add_middleware(
         CORSMiddleware,
