@@ -1,0 +1,53 @@
+---
+# FAILURE: Service pointing to wrong port
+# The service targets port 8080 but the container listens on 3000.
+# Symptom: Service exists, pods are Running, but traffic gets connection refused.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: production
+  labels:
+    app: order-service
+    tier: backend
+    purpose: demo-failure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+        tier: backend
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-listen=:3000"
+            - "-text=order-service OK"
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: production
+  labels:
+    purpose: demo-failure
+spec:
+  selector:
+    app: order-service
+  ports:
+    - port: 80
+      targetPort: 8080   # WRONG — container listens on 3000

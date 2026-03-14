@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "name": "bad-probe-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "nginx",
+        "image": "nginx:1.25",
+        "ports": [
+          {
+            "containerPort": 80,
+            "protocol": "TCP"
+          }
+        ],
+        "livenessProbe": {
+          "httpGet": {
+            "path": "/this-path-does-not-exist",
+            "port": 80,
+            "scheme": "HTTP"
+          },
+          "initialDelaySeconds": 5,
+          "periodSeconds": 5,
+          "failureThreshold": 3
+        }
+      }
+    ]
+  },
+  "status": {
+    "phase": "Running",
+    "containerStatuses": [
+      {
+        "name": "nginx",
+        "ready": true,
+        "restartCount": 2,
+        "state": {
+          "running": {
+            "startedAt": "2024-01-15T10:00:05Z"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "name": "crashloop-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z",
+    "labels": {
+      "app": "api-server",
+      "version": "v2.3.1"
+    }
+  },
+  "spec": {
+    "nodeName": "ip-10-0-1-45.ec2.internal",
+    "containers": [
+      {
+        "name": "app",
+        "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myapp:v2.3.1",
+        "env": [
+          {"name": "DB_HOST", "value": "postgres-primary.db.svc.cluster.local"},
+          {"name": "DB_PASSWORD", "value": "p@ssw0rd-prod-2024!"},
+          {"name": "DATABASE_URL", "value": "postgres://admin:s3cretP@ss@10.0.5.23:5432/production"},
+          {"name": "AWS_ACCESS_KEY_ID", "value": "AKIAIOSFODNN7EXAMPLE"},
+          {"name": "AWS_SECRET_ACCESS_KEY", "value": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"},
+          {"name": "REDIS_URL", "value": "redis://:auth-token-abc123@redis-master.cache.svc:6379"},
+          {"name": "API_KEY", "value": "sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx"},
+          {"name": "GITHUB_TOKEN", "value": "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn"},
+          {"name": "SLACK_WEBHOOK", "value": "https://hooks.discord.com/api/webhooks/000000000000000000/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+          {"name": "DD_API_KEY", "value": "***HIDDEN***"},
+          {"name": "LOG_LEVEL", "value": "debug"},
+          {"name": "PORT", "value": "8080"}
+        ],
+        "resources": {
+          "requests": {"memory": "256Mi", "cpu": "100m"},
+          "limits": {"memory": "512Mi", "cpu": "500m"}
+        },
+        "livenessProbe": {
+          "httpGet": {"path": "/healthz", "port": 8080},
+          "initialDelaySeconds": 10,
+          "periodSeconds": 5
+        }
+      }
+    ]
+  },
+  "status": {
+    "phase": "Running",
+    "hostIP": "10.0.1.45",
+    "podIP": "172.20.0.15",
+    "containerStatuses": [
+      {
+        "name": "app",
+        "ready": false,
+        "restartCount": 15,
+        "state": {
+          "waiting": {
+            "reason": "CrashLoopBackOff",
+            "message": "back-off 5m0s restarting failed container=app pod=crashloop-pod"
+          }
+        },
+        "lastState": {
+          "terminated": {
+            "exitCode": 1,
+            "reason": "Error",
+            "message": "connection refused to postgres://admin:s3cretP@ss@10.0.5.23:5432/production"
+          }
+        }
+      }
+    ]
+  }
+}

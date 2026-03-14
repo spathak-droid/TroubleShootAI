@@ -1,0 +1,3 @@
+[
+  {"error": "pods is forbidden: User \"system:serviceaccount:monitoring:prometheus\" cannot list resource \"pods\" in API group \"\" in the namespace \"kube-system\""}
+]

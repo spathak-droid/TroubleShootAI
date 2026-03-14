@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "name": "oom-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z",
+    "labels": {
+      "app": "ml-worker",
+      "team": "data-science"
+    }
+  },
+  "spec": {
+    "nodeName": "ip-10-0-2-88.ec2.internal",
+    "containers": [
+      {
+        "name": "worker",
+        "image": "123456789012.dkr.ecr.us-west-2.amazonaws.com/ml-worker:latest",
+        "env": [
+          {"name": "S3_BUCKET", "value": "s3://company-ml-models-prod"},
+          {"name": "AWS_DEFAULT_REGION", "value": "us-west-2"},
+          {"name": "MODEL_SERVER_URL", "value": "http://10.0.3.100:8501/v1/models"},
+          {"name": "WANDB_API_KEY", "value": "aK3x9Qm7zRtP2wL8vN5jH4gF6dS1cB0yU2eI7oA"},
+          {"name": "SSH_PRIVATE_KEY", "value": "***HIDDEN***"}
+        ],
+        "resources": {
+          "limits": {
+            "memory": "256Mi"
+          }
+        }
+      }
+    ],
+    "serviceAccountName": "ml-worker-sa"
+  },
+  "status": {
+    "phase": "Running",
+    "hostIP": "10.0.2.88",
+    "podIP": "172.20.1.33",
+    "containerStatuses": [
+      {
+        "name": "worker",
+        "ready": false,
+        "restartCount": 8,
+        "state": {
+          "waiting": {
+            "reason": "CrashLoopBackOff",
+            "message": "back-off restarting failed container"
+          }
+        },
+        "lastState": {
+          "terminated": {
+            "exitCode": 137,
+            "reason": "OOMKilled"
+          }
+        }
+      }
+    ]
+  }
+}

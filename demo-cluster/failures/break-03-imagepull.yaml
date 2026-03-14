@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: break-imagepull
+  namespace: default
+  labels:
+    app: break-imagepull
+    purpose: demo-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: break-imagepull
+  template:
+    metadata:
+      labels:
+        app: break-imagepull
+    spec:
+      containers:
+        - name: bad-image
+          image: nginx:this-tag-does-not-exist-99999
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

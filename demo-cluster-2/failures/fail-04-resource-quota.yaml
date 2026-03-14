@@ -1,0 +1,50 @@
+---
+# FAILURE: ResourceQuota blocks pod scheduling
+# A tight quota is applied, then a deployment tries to exceed it.
+# Symptom: ReplicaSet exists but pods fail to create with "exceeded quota" events.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tight-quota
+  namespace: production
+  labels:
+    purpose: demo-failure
+spec:
+  hard:
+    pods: "10"
+    requests.cpu: "500m"
+    requests.memory: "256Mi"
+    limits.cpu: "1"
+    limits.memory: "512Mi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-worker
+  namespace: production
+  labels:
+    app: analytics-worker
+    tier: backend
+    purpose: demo-failure
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: analytics-worker
+  template:
+    metadata:
+      labels:
+        app: analytics-worker
+        tier: backend
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command: ["sh", "-c", "while true; do echo crunching analytics; sleep 5; done"]
+          resources:
+            requests:
+              cpu: 400m       # 3 replicas × 400m = 1200m > quota 500m
+              memory: 200Mi   # 3 replicas × 200Mi = 600Mi > quota 256Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

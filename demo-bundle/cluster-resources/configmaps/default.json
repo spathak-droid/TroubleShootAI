@@ -1,0 +1,26 @@
+{
+  "kind": "ConfigMapList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "ConfigMap",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "kube-root-ca.crt",
+        "namespace": "default",
+        "uid": "cfg-11111111-1111-1111-1111-111111111111",
+        "resourceVersion": "410",
+        "creationTimestamp": "2026-03-11T21:20:05Z",
+        "annotations": {
+          "kubernetes.io/description": "Contains a CA bundle that can be used to verify the kube-apiserver when using internal endpoints such as the internal service IP or kubernetes.default.svc. No other usage is guaranteed across distributions of Kubernetes clusters."
+        }
+      },
+      "data": {
+        "ca.crt": "-----BEGIN CERTIFICATE-----\nMIIC/jCCAeagAwIBAgIBADANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwprdWJl\ncm5ldGVzMB4XDTI2MDMxMTIxMjAwMFoXDTM2MDMwOTIxMjAwMFowFTETMBEGA1UE\nAxMKa3ViZXJuZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAL1F\n***HIDDEN***\n-----END CERTIFICATE-----\n"
+      }
+    }
+  ]
+}

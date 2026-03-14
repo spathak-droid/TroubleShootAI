@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "metadata": {"name": "deny-all-ingress", "namespace": "default"},
+      "spec": {
+        "podSelector": {"matchLabels": {"app": "secure-app"}},
+        "policyTypes": ["Ingress"],
+        "ingress": []
+      }
+    },
+    {
+      "metadata": {"name": "allow-frontend", "namespace": "default"},
+      "spec": {
+        "podSelector": {"matchLabels": {"app": "backend"}},
+        "policyTypes": ["Ingress"],
+        "ingress": [
+          {
+            "from": [{"podSelector": {"matchLabels": {"app": "frontend"}}}],
+            "ports": [{"port": 8080, "protocol": "TCP"}]
+          }
+        ]
+      }
+    }
+  ]
+}

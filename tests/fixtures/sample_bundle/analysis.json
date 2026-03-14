@@ -1,0 +1,79 @@
+[
+  {
+    "name": "clusterVersion",
+    "isPass": true,
+    "title": "Cluster Version",
+    "message": "Cluster version is OK"
+  },
+  {
+    "name": "nodeResources",
+    "checkName": "Node count",
+    "isFail": true,
+    "title": "Node Resources",
+    "message": "Less than 2 nodes found"
+  },
+  {
+    "name": "containerRuntime",
+    "isPass": true,
+    "title": "Container Runtime",
+    "message": "Container runtime is containerd"
+  },
+  {
+    "name": "deploymentStatus",
+    "isWarn": true,
+    "title": "Deployment Status",
+    "message": "break-crashloop deployment has only 1 ready replica"
+  },
+  {
+    "name": "cephStatus",
+    "isFail": true,
+    "title": "Ceph Health",
+    "message": "Ceph cluster is in HEALTH_WARN state: 1 nearfull osd(s)",
+    "URI": "https://docs.ceph.com/en/latest/rados/operations/health-checks/"
+  },
+  {
+    "name": "distribution",
+    "isPass": true,
+    "title": "Kubernetes Distribution",
+    "message": "Kubernetes distribution detected: kind"
+  },
+  {
+    "name": "textAnalyze",
+    "checkName": "OOM detection in logs",
+    "isFail": true,
+    "title": "OOM Detection",
+    "message": "OOM events detected in pod logs"
+  },
+  {
+    "name": "imagePullSecret",
+    "checkName": "Registry credentials",
+    "isWarn": true,
+    "title": "Image Pull Secret",
+    "message": "No image pull secret found for Docker Hub"
+  },
+  {
+    "name": "clusterPodStatuses",
+    "isFail": true,
+    "title": "Cluster Pod Statuses",
+    "message": "2 pods are in CrashLoopBackOff state"
+  },
+  {
+    "name": "event",
+    "isWarn": true,
+    "title": "Cluster Events",
+    "message": "Warning events detected: BackOff, OOMKilling"
+  },
+  {
+    "name": "certificates",
+    "isWarn": true,
+    "title": "Certificate Expiration",
+    "message": "1 certificate expires within 30 days"
+  },
+  {
+    "name": "textAnalyze",
+    "checkName": "DNS resolution failures",
+    "isWarn": true,
+    "title": "DNS Resolution",
+    "message": "DNS resolution failures detected in pod logs"
+  }
+]

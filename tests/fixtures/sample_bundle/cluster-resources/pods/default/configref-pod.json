@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "name": "configref-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "app",
+        "image": "myapp:latest",
+        "envFrom": [
+          {
+            "configMapRef": {
+              "name": "missing-config"
+            }
+          }
+        ]
+      }
+    ],
+    "volumes": [
+      {
+        "name": "config-vol",
+        "configMap": {
+          "name": "also-missing-config"
+        }
+      }
+    ]
+  },
+  "status": {
+    "phase": "Running",
+    "containerStatuses": [
+      {
+        "name": "app",
+        "ready": true,
+        "restartCount": 0
+      }
+    ]
+  }
+}

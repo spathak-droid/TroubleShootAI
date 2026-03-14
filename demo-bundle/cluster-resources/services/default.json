@@ -1,0 +1,171 @@
+{
+  "kind": "ServiceList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "kubernetes",
+        "namespace": "default",
+        "uid": "aaa11111-1111-1111-1111-111111111111",
+        "resourceVersion": "200",
+        "creationTimestamp": "2026-03-11T21:20:00Z",
+        "labels": {
+          "component": "apiserver",
+          "provider": "kubernetes"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "https",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": 6443
+          }
+        ],
+        "clusterIP": "10.96.0.1",
+        "clusterIPs": [
+          "10.96.0.1"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-bad-probe-svc",
+        "namespace": "default",
+        "uid": "bbb22222-2222-2222-2222-222222222222",
+        "resourceVersion": "710",
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "break-bad-probe"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "protocol": "TCP",
+            "port": 80,
+            "targetPort": 80
+          }
+        ],
+        "selector": {
+          "app": "break-bad-probe"
+        },
+        "clusterIP": "10.96.45.12",
+        "clusterIPs": [
+          "10.96.45.12"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-crashloop-svc",
+        "namespace": "default",
+        "uid": "ccc33333-3333-3333-3333-333333333333",
+        "resourceVersion": "711",
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "break-crashloop"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app": "break-crashloop"
+        },
+        "clusterIP": "10.96.78.34",
+        "clusterIPs": [
+          "10.96.78.34"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "orphaned-svc",
+        "namespace": "default",
+        "uid": "ddd44444-4444-4444-4444-444444444444",
+        "resourceVersion": "712",
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "deleted-app"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "protocol": "TCP",
+            "port": 80,
+            "targetPort": 80
+          }
+        ],
+        "selector": {
+          "app": "deleted-app"
+        },
+        "clusterIP": "10.96.99.99",
+        "clusterIPs": [
+          "10.96.99.99"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

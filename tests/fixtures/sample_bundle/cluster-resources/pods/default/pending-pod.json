@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "name": "pending-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-01T00:00:00Z"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "app",
+        "image": "myapp:latest"
+      }
+    ]
+  },
+  "status": {
+    "phase": "Pending",
+    "conditions": [
+      {
+        "type": "PodScheduled",
+        "status": "False",
+        "message": "0/3 nodes are available: 3 Insufficient memory."
+      }
+    ]
+  }
+}

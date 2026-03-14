@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: break-oom
+  namespace: default
+  labels:
+    app: break-oom
+    purpose: demo-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: break-oom
+  template:
+    metadata:
+      labels:
+        app: break-oom
+    spec:
+      containers:
+        - name: oom-eater
+          image: busybox:1.36
+          command:
+            - "sh"
+            - "-c"
+            - |
+              # Allocate memory in a loop until OOMKilled
+              i=0
+              while true; do
+                head -c 1048576 /dev/urandom | cat > /dev/null &
+                dd if=/dev/zero bs=1M count=10 2>/dev/null || true
+                i=$((i+1))
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              memory: 10Mi

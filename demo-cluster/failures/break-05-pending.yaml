@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: break-pending
+  namespace: default
+  labels:
+    app: break-pending
+    purpose: demo-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: break-pending
+  template:
+    metadata:
+      labels:
+        app: break-pending
+    spec:
+      containers:
+        - name: greedy
+          image: nginx:1.25
+          resources:
+            requests:
+              memory: 999Gi

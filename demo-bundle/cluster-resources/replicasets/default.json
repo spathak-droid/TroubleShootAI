@@ -1,0 +1,377 @@
+{
+  "kind": "ReplicaSetList",
+  "apiVersion": "apps/v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "ReplicaSet",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-bad-probe-84fd687d57",
+        "namespace": "default",
+        "uid": "327d7e09-dbe6-4c7f-a814-41c40cf66455",
+        "resourceVersion": "780",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "break-bad-probe",
+          "pod-template-hash": "84fd687d57"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "break-bad-probe",
+            "uid": "b1a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-bad-probe",
+            "pod-template-hash": "84fd687d57"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-bad-probe",
+              "pod-template-hash": "84fd687d57"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "nginx",
+                "image": "nginx:1.25",
+                "ports": [
+                  {
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/this-path-does-not-exist",
+                    "port": 80,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 5,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "replicas": 1,
+        "fullyLabeledReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "observedGeneration": 1
+      }
+    },
+    {
+      "kind": "ReplicaSet",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-crashloop-5684949b4c",
+        "namespace": "default",
+        "uid": "27571ad2-8fa2-47a1-ac1b-465342cac381",
+        "resourceVersion": "751",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:37Z",
+        "labels": {
+          "app": "break-crashloop",
+          "pod-template-hash": "5684949b4c"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "break-crashloop",
+            "uid": "c2b3c4d5-e6f7-a8b9-c0d1-e2f3a4b5c6d7",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-crashloop",
+            "pod-template-hash": "5684949b4c"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-crashloop",
+              "pod-template-hash": "5684949b4c"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "crasher",
+                "image": "busybox:1.36",
+                "command": [
+                  "sh",
+                  "-c",
+                  "exit 1"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "replicas": 1,
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1
+      }
+    },
+    {
+      "kind": "ReplicaSet",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-imagepull-9ffbc88b7",
+        "namespace": "default",
+        "uid": "277f9258-3b22-48ac-afbb-7b8a086fec39",
+        "resourceVersion": "791",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:37Z",
+        "labels": {
+          "app": "break-imagepull",
+          "pod-template-hash": "9ffbc88b7"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "break-imagepull",
+            "uid": "d3c4d5e6-f7a8-b9c0-d1e2-f3a4b5c6d7e8",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-imagepull",
+            "pod-template-hash": "9ffbc88b7"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-imagepull",
+              "pod-template-hash": "9ffbc88b7"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "bad-image",
+                "image": "nginx:this-tag-does-not-exist-99999",
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "replicas": 1,
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1
+      }
+    },
+    {
+      "kind": "ReplicaSet",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-missing-config-576f9d7cb",
+        "namespace": "default",
+        "uid": "a3464266-cdff-42db-a68a-82ec7c495756",
+        "resourceVersion": "795",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:37Z",
+        "labels": {
+          "app": "break-missing-config",
+          "pod-template-hash": "576f9d7cb"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "break-missing-config",
+            "uid": "e4d5e6f7-a8b9-c0d1-e2f3-a4b5c6d7e8f9",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-missing-config",
+            "pod-template-hash": "576f9d7cb"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-missing-config",
+              "pod-template-hash": "576f9d7cb"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "app",
+                "image": "nginx:1.25",
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "replicas": 1,
+        "fullyLabeledReplicas": 1,
+        "observedGeneration": 1
+      }
+    },
+    {
+      "kind": "ReplicaSet",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "healthy-nginx-d5c6847bd",
+        "namespace": "default",
+        "uid": "12e50db0-7c11-428f-bede-f0254bd27c75",
+        "resourceVersion": "770",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:36Z",
+        "labels": {
+          "app": "healthy-nginx",
+          "pod-template-hash": "d5c6847bd"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "3",
+          "deployment.kubernetes.io/max-replicas": "4",
+          "deployment.kubernetes.io/revision": "1"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "healthy-nginx",
+            "uid": "f5e6f7a8-b9c0-d1e2-f3a4-b5c6d7e8f9a0",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "matchLabels": {
+            "app": "healthy-nginx",
+            "pod-template-hash": "d5c6847bd"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "healthy-nginx",
+              "pod-template-hash": "d5c6847bd"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "nginx",
+                "image": "nginx:1.25",
+                "ports": [
+                  {
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "replicas": 3,
+        "fullyLabeledReplicas": 3,
+        "readyReplicas": 3,
+        "availableReplicas": 3,
+        "observedGeneration": 1
+      }
+    }
+  ]
+}

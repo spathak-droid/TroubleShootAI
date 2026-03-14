@@ -1,0 +1,383 @@
+apiVersion: troubleshoot.sh/v1beta2
+kind: SupportBundle
+metadata:
+  name: bundle-analyzer-demo
+spec:
+  collectors:
+    - clusterInfo: {}
+    - clusterResources: {}
+
+    # Collect logs from ALL pods across all namespaces
+    - logs:
+        limits:
+          maxLines: 500
+          maxAge: 720h
+
+    # Also collect previous container logs (crash investigation)
+    - logs:
+        collectorName: previous-logs
+        limits:
+          maxLines: 500
+          maxAge: 720h
+
+    - exec:
+        name: node-stats
+        collectorName: node-stats
+        selector:
+          - kubernetes.io/os=linux
+        command: ["sh", "-c", "top -bn1 | head -20"]
+        timeout: 10s
+
+    - exec:
+        name: disk-usage
+        collectorName: disk-usage
+        selector:
+          - kubernetes.io/os=linux
+        command: ["sh", "-c", "df -h && echo '---' && du -sh /var/log/ 2>/dev/null || true"]
+        timeout: 10s
+
+    - certificates: {}
+
+    - registryImages:
+        images:
+          - docker.io/library/nginx:latest
+          - docker.io/library/redis:7
+
+  analyzers:
+    # ──────────────────────────────────────────────
+    # Cluster-level checks
+    # ──────────────────────────────────────────────
+    - clusterVersion:
+        outcomes:
+          - fail:
+              when: "< 1.26.0"
+              message: "Cluster version is too old. Minimum supported is 1.26.0."
+          - warn:
+              when: "< 1.28.0"
+              message: "Cluster version is nearing end of support. Consider upgrading."
+          - pass:
+              message: "Cluster version is OK"
+
+    - distribution:
+        outcomes:
+          - warn:
+              when: "== unknown"
+              message: "Could not determine Kubernetes distribution"
+          - pass:
+              message: "Kubernetes distribution detected"
+
+    - containerRuntime:
+        outcomes:
+          - fail:
+              when: "!= containerd"
+              message: "Container runtime is not containerd"
+          - pass:
+              message: "Container runtime is containerd"
+
+    # ──────────────────────────────────────────────
+    # Node resource checks
+    # ──────────────────────────────────────────────
+    - nodeResources:
+        checkName: Node count
+        outcomes:
+          - fail:
+              when: "count() < 2"
+              message: "Less than 2 nodes found"
+          - pass:
+              message: "Sufficient nodes found"
+
+    - nodeResources:
+        checkName: Node memory
+        outcomes:
+          - warn:
+              when: "min(memoryCapacity) < 2Gi"
+              message: "At least one node has less than 2Gi memory"
+          - pass:
+              message: "All nodes have sufficient memory"
+
+    - nodeResources:
+        checkName: Node CPU
+        outcomes:
+          - warn:
+              when: "min(cpuCapacity) < 2"
+              message: "At least one node has less than 2 CPU cores"
+          - pass:
+              message: "All nodes have sufficient CPU"
+
+    - nodeResources:
+        checkName: Node ephemeral storage
+        outcomes:
+          - warn:
+              when: "min(ephemeralStorageCapacity) < 5Gi"
+              message: "At least one node has less than 5Gi ephemeral storage available"
+          - pass:
+              message: "All nodes have sufficient ephemeral storage"
+
+    - nodeResources:
+        checkName: Node pod capacity
+        outcomes:
+          - warn:
+              when: "min(podCapacity) < 10"
+              message: "At least one node has fewer than 10 allocatable pods remaining"
+          - pass:
+              message: "All nodes have sufficient pod capacity"
+
+    # ──────────────────────────────────────────────
+    # Pod and container status (cluster-wide)
+    # ──────────────────────────────────────────────
+    - clusterPodStatuses:
+        checkName: Unhealthy pods cluster-wide
+        outcomes:
+          - fail:
+              when: "!= Healthy"
+              message: "One or more pods are not healthy"
+          - pass:
+              message: "All pods are healthy"
+
+    - clusterContainerStatuses:
+        checkName: Container restart count
+        outcomes:
+          - fail:
+              when: "restartCount > 5"
+              message: "One or more containers have restarted more than 5 times — possible crash loop"
+          - pass:
+              message: "No containers with excessive restarts"
+
+    # ──────────────────────────────────────────────
+    # Deployment status
+    # ──────────────────────────────────────────────
+    - deploymentStatus:
+        name: break-crashloop
+        namespace: default
+        outcomes:
+          - fail:
+              when: "< 1"
+              message: "break-crashloop deployment does not have any ready replicas"
+          - warn:
+              when: "= 1"
+              message: "break-crashloop deployment has only 1 ready replica"
+          - pass:
+              message: "break-crashloop deployment is healthy"
+
+    # ──────────────────────────────────────────────
+    # Job status
+    # ──────────────────────────────────────────────
+    - jobStatus:
+        checkName: Failed or stuck jobs
+        namespace: default
+        outcomes:
+          - fail:
+              when: "failed"
+              message: "One or more jobs have failed"
+          - warn:
+              when: "running"
+              message: "One or more jobs are still running (may be stuck)"
+          - pass:
+              message: "All jobs completed successfully"
+
+    # ──────────────────────────────────────────────
+    # Kubernetes events
+    # ──────────────────────────────────────────────
+    - event:
+        checkName: FailedScheduling events
+        reason: FailedScheduling
+        outcomes:
+          - fail:
+              when: "true"
+              message: "FailedScheduling events detected — pods cannot be placed on nodes"
+          - pass:
+              message: "No FailedScheduling events found"
+
+    - event:
+        checkName: Evicted pod events
+        reason: Evicted
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Pod eviction events detected — node may be under resource pressure"
+          - pass:
+              message: "No pod eviction events found"
+
+    - event:
+        checkName: OOMKilling events
+        reason: OOMKilling
+        outcomes:
+          - fail:
+              when: "true"
+              message: "OOMKilling events detected — containers are exceeding memory limits"
+          - pass:
+              message: "No OOMKilling events found"
+
+    - event:
+        checkName: FailedMount events
+        reason: FailedMount
+        outcomes:
+          - warn:
+              when: "true"
+              message: "FailedMount events detected — volumes may be misconfigured"
+          - pass:
+              message: "No FailedMount events found"
+
+    - event:
+        checkName: BackOff events
+        reason: BackOff
+        outcomes:
+          - warn:
+              when: "true"
+              message: "BackOff events detected — containers or image pulls are failing repeatedly"
+          - pass:
+              message: "No BackOff events found"
+
+    # ──────────────────────────────────────────────
+    # Certificates
+    # ──────────────────────────────────────────────
+    - certificates:
+        checkName: TLS certificate expiry
+        outcomes:
+          - fail:
+              when: "notAfter < 7d"
+              message: "One or more TLS certificates expire within 7 days"
+          - warn:
+              when: "notAfter < 30d"
+              message: "One or more TLS certificates expire within 30 days"
+          - pass:
+              message: "All TLS certificates are valid for at least 30 days"
+
+    # ──────────────────────────────────────────────
+    # CRD presence
+    # ──────────────────────────────────────────────
+    - customResourceDefinition:
+        checkName: CRDs installed
+        customResourceDefinitionName: "*"
+        outcomes:
+          - warn:
+              when: "< 1"
+              message: "No custom resource definitions found in the cluster"
+          - pass:
+              message: "Custom resource definitions are present"
+
+    # ──────────────────────────────────────────────
+    # Registry and image pull
+    # ──────────────────────────────────────────────
+    - imagePullSecret:
+        checkName: Registry credentials
+        registryName: index.docker.io
+        outcomes:
+          - warn:
+              message: "No image pull secret found for Docker Hub"
+          - pass:
+              message: "Image pull secret exists for Docker Hub"
+
+    - storageClass:
+        checkName: Default storage class
+        outcomes:
+          - fail:
+              when: "= 0"
+              message: "No storage classes found in the cluster"
+          - warn:
+              when: "< 1"
+              message: "No default storage class configured"
+          - pass:
+              message: "Default storage class is configured"
+
+    # ──────────────────────────────────────────────
+    # textAnalyze — log pattern matching
+    # ──────────────────────────────────────────────
+    - textAnalyze:
+        checkName: OOM detection in logs
+        fileName: "*/logs/*.log"
+        regex: "OOMKilled|Out of memory|oom-kill"
+        outcomes:
+          - fail:
+              when: "true"
+              message: "OOM events detected in pod logs"
+          - pass:
+              message: "No OOM events found in logs"
+
+    - textAnalyze:
+        checkName: Connection refused in logs
+        fileName: "*/logs/*.log"
+        regex: "connection refused|ECONNREFUSED|connect: connection refused"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Connection refused errors found in pod logs"
+          - pass:
+              message: "No connection refused errors in logs"
+
+    - textAnalyze:
+        checkName: TLS errors in logs
+        fileName: "*/logs/*.log"
+        regex: "tls: handshake failure|x509: certificate|certificate has expired"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "TLS/certificate errors found in pod logs"
+          - pass:
+              message: "No TLS errors in logs"
+
+    - textAnalyze:
+        checkName: DNS resolution failures
+        fileName: "*/logs/*.log"
+        regex: "dial tcp: lookup .* no such host|DNS resolution failed|could not resolve host"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "DNS resolution failures detected in pod logs"
+          - pass:
+              message: "No DNS resolution failures in logs"
+
+    - textAnalyze:
+        checkName: Context deadline exceeded
+        fileName: "*/logs/*.log"
+        regex: "context deadline exceeded|DeadlineExceeded"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Context deadline exceeded errors found in pod logs — possible timeout issues"
+          - pass:
+              message: "No deadline exceeded errors in logs"
+
+    - textAnalyze:
+        checkName: Permission denied errors
+        fileName: "*/logs/*.log"
+        regex: "permission denied|EACCES|403 Forbidden"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Permission denied errors found in pod logs — check RBAC and file permissions"
+          - pass:
+              message: "No permission denied errors in logs"
+
+    - textAnalyze:
+        checkName: Disk pressure in logs
+        fileName: "*/logs/*.log"
+        regex: "disk full|no space left on device|DiskPressure"
+        outcomes:
+          - fail:
+              when: "true"
+              message: "Disk pressure or full disk errors detected in pod logs"
+          - pass:
+              message: "No disk pressure errors in logs"
+
+    - textAnalyze:
+        checkName: Crash and panic detection
+        fileName: "*/logs/*.log"
+        regex: "panic:|runtime error:|fatal error:|goroutine .* \\[running\\]"
+        outcomes:
+          - fail:
+              when: "true"
+              message: "Application crash or panic detected in pod logs"
+          - pass:
+              message: "No crashes or panics found in logs"
+
+    - textAnalyze:
+        checkName: Readiness/liveness probe failures
+        fileName: "*/logs/*.log"
+        regex: "Liveness probe failed|Readiness probe failed|Startup probe failed"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Health probe failures detected in pod logs"
+          - pass:
+              message: "No health probe failures in logs"

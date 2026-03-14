@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "metadata": {"name": "compute-quota", "namespace": "default"},
+      "spec": {
+        "hard": {"requests.cpu": "4", "requests.memory": "8Gi", "limits.cpu": "8", "limits.memory": "16Gi", "pods": "20"}
+      },
+      "status": {
+        "hard": {"requests.cpu": "4", "requests.memory": "8Gi", "limits.cpu": "8", "limits.memory": "16Gi", "pods": "20"},
+        "used": {"requests.cpu": "3800m", "requests.memory": "7Gi", "limits.cpu": "7", "limits.memory": "14Gi", "pods": "18"}
+      }
+    }
+  ]
+}

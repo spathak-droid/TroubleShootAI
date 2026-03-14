@@ -1,0 +1,140 @@
+{
+  "Records": [
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA3XFRBF23XXXXXXXXXXX:session-name",
+        "arn": "arn:aws:sts::123456789012:assumed-role/eks-admin-role/session-name",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIA3XFRBF23EXAMPLE",
+        "sessionContext": {
+          "attributes": {
+            "creationDate": "2024-01-15T09:00:00Z",
+            "mfaAuthenticated": "true"
+          },
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA3XFRBF23XXXXXXXXXXX",
+            "arn": "arn:aws:iam::123456789012:role/eks-admin-role",
+            "accountId": "123456789012",
+            "userName": "eks-admin-role"
+          }
+        }
+      },
+      "eventTime": "2024-01-15T10:00:05Z",
+      "eventSource": "eks.amazonaws.com",
+      "eventName": "DescribeCluster",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.50",
+      "userAgent": "kubectl/v1.28.0 (darwin/arm64)",
+      "requestParameters": {
+        "name": "production-cluster"
+      },
+      "responseElements": null,
+      "requestID": "abcd1234-ef56-7890-abcd-1234567890ab",
+      "eventID": "1234abcd-5678-ef90-1234-567890abcdef"
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA3XFRBF23XXXXXXXXXXX:deploy-bot",
+        "arn": "arn:aws:sts::123456789012:assumed-role/deploy-role/deploy-bot",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIA3XFRBF23DEPLOYYY"
+      },
+      "eventTime": "2024-01-15T10:01:00Z",
+      "eventSource": "eks.amazonaws.com",
+      "eventName": "CreateNodegroup",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "10.0.0.50",
+      "requestParameters": {
+        "name": "worker-nodegroup",
+        "clusterName": "production-cluster",
+        "subnets": ["subnet-0a1b2c3d4e5f67890", "subnet-0f9e8d7c6b5a43210"],
+        "instanceTypes": ["m5.xlarge"],
+        "scalingConfig": {
+          "minSize": 2,
+          "maxSize": 10,
+          "desiredSize": 3
+        },
+        "nodeRole": "arn:aws:iam::123456789012:role/eks-node-role",
+        "launchTemplate": {
+          "id": "lt-0a1b2c3d4e5f67890"
+        }
+      },
+      "errorCode": "InvalidParameterException",
+      "errorMessage": "The role arn:aws:iam::123456789012:role/eks-node-role does not have the required permissions. Ensure the role has AmazonEKSWorkerNodePolicy attached."
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDACKCEVSQ6C2EXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/developer",
+        "accountId": "123456789012",
+        "userName": "developer",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE"
+      },
+      "eventTime": "2024-01-15T10:02:00Z",
+      "eventSource": "sts.amazonaws.com",
+      "eventName": "GetCallerIdentity",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "198.51.100.25",
+      "requestParameters": null,
+      "responseElements": {
+        "userId": "AIDACKCEVSQ6C2EXAMPLE",
+        "account": "123456789012",
+        "arn": "arn:aws:iam::123456789012:user/developer"
+      }
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "arn": "arn:aws:sts::123456789012:assumed-role/eks-node-role/i-0a1b2c3d4e5f67890",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIA3XFRBF23NODEXXXX"
+      },
+      "eventTime": "2024-01-15T10:03:00Z",
+      "eventSource": "ecr.amazonaws.com",
+      "eventName": "GetAuthorizationToken",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "10.0.1.45",
+      "errorCode": "AccessDeniedException",
+      "errorMessage": "User: arn:aws:iam::123456789012:role/eks-node-role is not authorized to perform: ecr:GetAuthorizationToken on resource: *"
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "arn": "arn:aws:sts::123456789012:assumed-role/lambda-rds-role/lambda-func",
+        "accountId": "123456789012"
+      },
+      "eventTime": "2024-01-15T10:04:00Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBInstances",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "10.0.5.23",
+      "requestParameters": {
+        "dBInstanceIdentifier": "rds-prod"
+      },
+      "responseElements": {
+        "dBInstances": [
+          {
+            "dBInstanceIdentifier": "rds-prod",
+            "endpoint": {
+              "address": "rds-prod.c9xkl2mf8abc.us-east-1.rds.amazonaws.com",
+              "port": 5432
+            },
+            "masterUsername": "admin",
+            "vpcSecurityGroups": [
+              {"vpcSecurityGroupId": "sg-0a1b2c3d4e5f67890", "status": "active"}
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

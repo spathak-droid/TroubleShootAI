@@ -1,0 +1,53 @@
+---
+# FAILURE: Service selector doesn't match any pods
+# Deployment labels say "app: inventory-api" but service selects "app: inventory-service"
+# Symptom: Service has 0 endpoints, traffic goes nowhere.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  namespace: production
+  labels:
+    app: inventory-api
+    tier: backend
+    purpose: demo-failure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inventory-api
+  template:
+    metadata:
+      labels:
+        app: inventory-api
+        tier: backend
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-listen=:5678"
+            - "-text=inventory OK"
+          ports:
+            - containerPort: 5678
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: production
+  labels:
+    purpose: demo-failure
+spec:
+  selector:
+    app: inventory-service   # WRONG — should be "inventory-api"
+  ports:
+    - port: 80
+      targetPort: 5678

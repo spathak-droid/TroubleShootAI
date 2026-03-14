@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: break-bad-probe
+  namespace: default
+  labels:
+    app: break-bad-probe
+    purpose: demo-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: break-bad-probe
+  template:
+    metadata:
+      labels:
+        app: break-bad-probe
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /this-path-does-not-exist
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

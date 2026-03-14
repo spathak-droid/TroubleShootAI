@@ -1,0 +1,186 @@
+apiVersion: troubleshoot.sh/v1beta2
+kind: SupportBundle
+metadata:
+  name: bundle-analyzer-demo-2
+spec:
+  collectors:
+    - clusterInfo: {}
+    - clusterResources: {}
+    - logs:
+        limits:
+          maxLines: 500
+          maxAge: 720h
+    - logs:
+        collectorName: previous-logs
+        limits:
+          maxLines: 500
+          maxAge: 720h
+    - certificates: {}
+
+  analyzers:
+    - clusterVersion:
+        outcomes:
+          - fail:
+              when: "< 1.26.0"
+              message: "Cluster version is too old"
+          - pass:
+              message: "Cluster version is OK"
+
+    - nodeResources:
+        checkName: Node count
+        outcomes:
+          - fail:
+              when: "count() < 2"
+              message: "Less than 2 nodes found"
+          - pass:
+              message: "Sufficient nodes found"
+
+    - nodeResources:
+        checkName: Node memory
+        outcomes:
+          - warn:
+              when: "min(memoryCapacity) < 2Gi"
+              message: "At least one node has less than 2Gi memory"
+          - pass:
+              message: "All nodes have sufficient memory"
+
+    - clusterPodStatuses:
+        checkName: Unhealthy pods cluster-wide
+        outcomes:
+          - fail:
+              when: "!= Healthy"
+              message: "One or more pods are not healthy"
+          - pass:
+              message: "All pods are healthy"
+
+    - clusterContainerStatuses:
+        checkName: Container restart count
+        outcomes:
+          - fail:
+              when: "restartCount > 5"
+              message: "One or more containers have restarted more than 5 times"
+          - pass:
+              message: "No containers with excessive restarts"
+
+    - deploymentStatus:
+        name: notification-svc
+        namespace: production
+        outcomes:
+          - fail:
+              when: "< 1"
+              message: "notification-svc has no ready replicas — readiness probe may be failing"
+          - pass:
+              message: "notification-svc is healthy"
+
+    - deploymentStatus:
+        name: user-service
+        namespace: production
+        outcomes:
+          - fail:
+              when: "< 1"
+              message: "user-service has no ready replicas — init container may be stuck"
+          - pass:
+              message: "user-service is healthy"
+
+    - deploymentStatus:
+        name: analytics-worker
+        namespace: production
+        outcomes:
+          - fail:
+              when: "< 1"
+              message: "analytics-worker has no ready replicas — check resource quota"
+          - pass:
+              message: "analytics-worker is healthy"
+
+    - event:
+        checkName: FailedScheduling events
+        reason: FailedScheduling
+        outcomes:
+          - fail:
+              when: "true"
+              message: "FailedScheduling events detected"
+          - pass:
+              message: "No FailedScheduling events"
+
+    - event:
+        checkName: FailedCreate events
+        reason: FailedCreate
+        outcomes:
+          - fail:
+              when: "true"
+              message: "FailedCreate events detected — check resource quotas or RBAC"
+          - pass:
+              message: "No FailedCreate events"
+
+    - event:
+        checkName: FailedMount events
+        reason: FailedMount
+        outcomes:
+          - warn:
+              when: "true"
+              message: "FailedMount events detected — volumes may be misconfigured"
+          - pass:
+              message: "No FailedMount events"
+
+    - event:
+        checkName: BackOff events
+        reason: BackOff
+        outcomes:
+          - warn:
+              when: "true"
+              message: "BackOff events detected"
+          - pass:
+              message: "No BackOff events"
+
+    - event:
+        checkName: Unhealthy events
+        reason: Unhealthy
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Unhealthy events detected — probe failures occurring"
+          - pass:
+              message: "No Unhealthy events"
+
+    - storageClass:
+        checkName: Default storage class
+        outcomes:
+          - fail:
+              when: "= 0"
+              message: "No storage classes found"
+          - pass:
+              message: "Storage class is configured"
+
+    - certificates:
+        checkName: TLS certificate expiry
+        outcomes:
+          - fail:
+              when: "notAfter < 7d"
+              message: "TLS certificates expire within 7 days"
+          - warn:
+              when: "notAfter < 30d"
+              message: "TLS certificates expire within 30 days"
+          - pass:
+              message: "All TLS certificates valid for 30+ days"
+
+    - textAnalyze:
+        checkName: Connection refused in logs
+        fileName: "*/logs/*.log"
+        regex: "connection refused|ECONNREFUSED|connect: connection refused"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "Connection refused errors found in pod logs"
+          - pass:
+              message: "No connection refused errors"
+
+    - textAnalyze:
+        checkName: DNS resolution failures
+        fileName: "*/logs/*.log"
+        regex: "no such host|DNS resolution failed|could not resolve"
+        outcomes:
+          - warn:
+              when: "true"
+              message: "DNS resolution failures in pod logs"
+          - pass:
+              message: "No DNS failures"

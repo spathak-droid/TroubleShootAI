@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "name": "broken-deploy",
+        "namespace": "default"
+      },
+      "spec": {
+        "replicas": 3
+      },
+      "status": {
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "updatedReplicas": 3
+      }
+    },
+    {
+      "metadata": {
+        "name": "healthy-deploy",
+        "namespace": "default"
+      },
+      "spec": {
+        "replicas": 2
+      },
+      "status": {
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      }
+    }
+  ]
+}

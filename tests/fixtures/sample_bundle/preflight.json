@@ -1,0 +1,35 @@
+[
+  {
+    "name": "clusterVersion",
+    "isPass": true,
+    "title": "Kubernetes Version",
+    "message": "Kubernetes version is supported"
+  },
+  {
+    "name": "nodeResources",
+    "checkName": "Minimum node count",
+    "isPass": true,
+    "title": "Node Count",
+    "message": "Node count is sufficient"
+  },
+  {
+    "name": "nodeResources",
+    "checkName": "Minimum node memory",
+    "isWarn": true,
+    "title": "Node Memory",
+    "message": "Nodes should have at least 2Gi memory"
+  },
+  {
+    "name": "storageClass",
+    "checkName": "Storage class exists",
+    "isPass": true,
+    "title": "Storage Class",
+    "message": "Storage class is available"
+  },
+  {
+    "name": "containerRuntime",
+    "isFail": true,
+    "title": "Container Runtime",
+    "message": "containerd is the recommended container runtime"
+  }
+]

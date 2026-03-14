@@ -1,0 +1,124 @@
+"""FastAPI application factory for the Bundle Analyzer backend.
+
+Creates the app with CORS middleware, all API routers, an optional
+static file mount for the production frontend build, and a lifespan
+context manager for startup/shutdown cleanup.
+"""
+
+from __future__ import annotations
+
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import AsyncIterator
+
+from dotenv import load_dotenv
+
+# Load .env before any other imports that might read env vars
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+load_dotenv()  # also try cwd
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from loguru import logger
+
+from bundle_analyzer.api.routes import (
+    analysis,
+    bundles,
+    diff,
+    export,
+    findings,
+    interview,
+    ws,
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Application lifespan: startup and shutdown hooks.
+
+    On startup, logs the server configuration.
+    On shutdown, cleans up any temporary files from active sessions.
+
+    Args:
+        app: The FastAPI application instance.
+    """
+    logger.info("Bundle Analyzer API starting up")
+    yield
+    # Cleanup: remove temp files for all sessions
+    logger.info("Bundle Analyzer API shutting down -- cleaning up sessions")
+    from bundle_analyzer.api.deps import get_store
+
+    store = get_store()
+    for session in store.list_all():
+        if session.extracted_root and session.extracted_root.exists():
+            import shutil
+
+            try:
+                shutil.rmtree(session.extracted_root, ignore_errors=True)
+            except OSError as exc:
+                logger.warning("Cleanup failed for {}: {}", session.id, exc)
+
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application.
+
+    Returns:
+        Fully configured FastAPI app with all routes and middleware.
+    """
+    app = FastAPI(
+        title="Bundle Analyzer API",
+        description="AI-powered Kubernetes support bundle forensics",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
+
+    # CORS middleware -- default allows Next.js dev server
+    allowed_origins = os.environ.get(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include all routers under /api/v1
+    api_prefix = "/api/v1"
+    app.include_router(bundles.router, prefix=api_prefix)
+    app.include_router(analysis.router, prefix=api_prefix)
+    app.include_router(findings.router, prefix=api_prefix)
+    app.include_router(interview.router, prefix=api_prefix)
+    app.include_router(diff.router, prefix=api_prefix)
+    app.include_router(export.router, prefix=api_prefix)
+    app.include_router(ws.router, prefix=api_prefix)
+
+    # Health check
+    @app.get("/api/v1/health", tags=["health"])
+    async def health_check() -> dict[str, str]:
+        """Return API health status.
+
+        Returns:
+            Dict with status field.
+        """
+        return {"status": "ok"}
+
+    # Static files mount for production frontend (Next.js export)
+    frontend_dir = Path(__file__).parent.parent.parent / "frontend" / "out"
+    if frontend_dir.is_dir():
+        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+        logger.info("Serving frontend static files from {}", frontend_dir)
+    else:
+        logger.debug("No frontend build found at {}", frontend_dir)
+
+    return app
+
+
+# Module-level app instance for `uvicorn bundle_analyzer.api.main:app`
+app = create_app()

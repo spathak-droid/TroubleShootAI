@@ -1,0 +1,31 @@
+{
+  "kind": "StorageClassList",
+  "apiVersion": "storage.k8s.io/v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "StorageClass",
+      "apiVersion": "storage.k8s.io/v1",
+      "metadata": {
+        "name": "standard",
+        "uid": "sc-11111111-1111-1111-1111-111111111111",
+        "resourceVersion": "300",
+        "creationTimestamp": "2026-03-11T21:20:02Z",
+        "annotations": {
+          "storageclass.kubernetes.io/is-default-class": "true"
+        },
+        "labels": {
+          "addonmanager.kubernetes.io/mode": "EnsureExists"
+        }
+      },
+      "provisioner": "rancher.io/local-path",
+      "parameters": {},
+      "reclaimPolicy": "Delete",
+      "mountOptions": [],
+      "volumeBindingMode": "WaitForFirstConsumer",
+      "allowVolumeExpansion": true
+    }
+  ]
+}

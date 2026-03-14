@@ -1,0 +1,56 @@
+---
+# FAILURE: Init container that never completes
+# Tries to connect to a service that doesn't exist, retries forever.
+# Symptom: Pod stuck in Init:0/1, main container never starts.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: production
+  labels:
+    app: user-service
+    tier: backend
+    purpose: demo-failure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+        tier: backend
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for postgres-primary:5432..."
+              while ! nc -z postgres-primary.production.svc.cluster.local 5432; do
+                echo "$(date) - postgres not ready, retrying in 3s..."
+                sleep 3
+              done
+              echo "postgres is up!"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+      containers:
+        - name: app
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

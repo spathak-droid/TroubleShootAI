@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "highrestart-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "worker",
+        "image": "worker:latest"
+      }
+    ]
+  },
+  "status": {
+    "phase": "Running",
+    "containerStatuses": [
+      {
+        "name": "worker",
+        "ready": true,
+        "restartCount": 10,
+        "state": {
+          "running": {
+            "startedAt": "2024-01-15T12:00:00Z"
+          }
+        }
+      }
+    ]
+  }
+}

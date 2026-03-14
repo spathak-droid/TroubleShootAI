@@ -1,0 +1,1 @@
+{"metadata": {"name": "sample-pod", "namespace": "default", "creationTimestamp": "2024-01-15T10:05:00Z"}, "spec": {"containers": [{"name": "main", "image": "nginx:latest"}]}, "status": {"phase": "Running", "containerStatuses": [{"name": "main", "ready": true, "restartCount": 0}]}}

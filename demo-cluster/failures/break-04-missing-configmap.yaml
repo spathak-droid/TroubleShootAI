@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: break-missing-config
+  namespace: default
+  labels:
+    app: break-missing-config
+    purpose: demo-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: break-missing-config
+  template:
+    metadata:
+      labels:
+        app: break-missing-config
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25
+          envFrom:
+            - configMapRef:
+                name: app-config-does-not-exist
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: break-crashloop
+  namespace: default
+  labels:
+    app: break-crashloop
+    purpose: demo-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: break-crashloop
+  template:
+    metadata:
+      labels:
+        app: break-crashloop
+    spec:
+      containers:
+        - name: crasher
+          image: busybox:1.36
+          command: ["sh", "-c", "exit 1"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi

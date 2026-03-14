@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "name": "kube-root-ca.crt",
+        "namespace": "default"
+      },
+      "data": {
+        "ca.crt": "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----"
+      }
+    },
+    {
+      "metadata": {
+        "name": "app-config",
+        "namespace": "default"
+      },
+      "data": {
+        "DATABASE_URL": "postgres://admin:s3cretP@ss@10.0.5.23:5432/production",
+        "REDIS_URL": "redis://:auth-token-abc123@redis-master.cache.svc:6379",
+        "API_ENDPOINT": "https://api.internal.company.com/v1",
+        "LOG_LEVEL": "info",
+        "MAX_RETRIES": "3",
+        "SENTRY_DSN": "https://abc123def456@o123456.ingest.sentry.io/789012",
+        "SMTP_PASSWORD": "mailgun-smtp-p@ss-2024"
+      }
+    }
+  ]
+}

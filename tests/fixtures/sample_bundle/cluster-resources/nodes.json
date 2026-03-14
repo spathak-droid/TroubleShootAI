@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "name": "ip-10-0-1-45.ec2.internal",
+        "creationTimestamp": "2024-01-15T10:00:00Z",
+        "labels": {
+          "node.kubernetes.io/instance-type": "m5.xlarge",
+          "topology.kubernetes.io/zone": "us-east-1a",
+          "kubernetes.io/arch": "amd64"
+        }
+      },
+      "status": {
+        "conditions": [
+          {"type": "Ready", "status": "True"},
+          {"type": "MemoryPressure", "status": "False"},
+          {"type": "DiskPressure", "status": "False"}
+        ],
+        "addresses": [
+          {"type": "InternalIP", "address": "10.0.1.45"},
+          {"type": "ExternalIP", "address": "54.23.112.88"},
+          {"type": "Hostname", "address": "ip-10-0-1-45.ec2.internal"}
+        ],
+        "capacity": {"memory": "16Gi", "cpu": "4"},
+        "allocatable": {"memory": "15Gi", "cpu": "3800m"},
+        "nodeInfo": {
+          "kubeletVersion": "v1.28.0",
+          "machineID": "ec2-i-0a1b2c3d4e5f67890",
+          "systemUUID": "EC2F1234-5678-ABCD-EF90-1234567890AB",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "ip-10-0-2-88.ec2.internal",
+        "creationTimestamp": "2024-01-15T10:00:00Z",
+        "labels": {
+          "node.kubernetes.io/instance-type": "m5.xlarge",
+          "topology.kubernetes.io/zone": "us-east-1b"
+        }
+      },
+      "status": {
+        "conditions": [
+          {"type": "Ready", "status": "True"},
+          {"type": "MemoryPressure", "status": "True", "message": "kubelet has memory pressure"}
+        ],
+        "addresses": [
+          {"type": "InternalIP", "address": "10.0.2.88"},
+          {"type": "Hostname", "address": "ip-10-0-2-88.ec2.internal"}
+        ],
+        "capacity": {"memory": "8Gi", "cpu": "4"},
+        "allocatable": {"memory": "7Gi", "cpu": "3800m"},
+        "nodeInfo": {
+          "kubeletVersion": "v1.28.0",
+          "machineID": "ec2-i-0f9e8d7c6b5a43210",
+          "systemUUID": "EC2A4321-8765-DCBA-09FE-0987654321BA"
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "ip-10-0-3-12.ec2.internal",
+        "creationTimestamp": "2024-01-15T10:00:00Z"
+      },
+      "status": {
+        "conditions": [
+          {"type": "Ready", "status": "False", "message": "Kubelet stopped posting node status"}
+        ],
+        "addresses": [
+          {"type": "InternalIP", "address": "10.0.3.12"},
+          {"type": "Hostname", "address": "ip-10-0-3-12.ec2.internal"}
+        ],
+        "capacity": {"memory": "4Gi", "cpu": "2"},
+        "allocatable": {"memory": "3Gi", "cpu": "1800m"}
+      }
+    }
+  ]
+}

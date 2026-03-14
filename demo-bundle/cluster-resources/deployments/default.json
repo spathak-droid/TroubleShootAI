@@ -1,0 +1,460 @@
+{
+  "kind": "DeploymentList",
+  "apiVersion": "apps/v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-bad-probe",
+        "namespace": "default",
+        "uid": "b1a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6",
+        "resourceVersion": "780",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "break-bad-probe"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-bad-probe"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-bad-probe"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "nginx",
+                "image": "nginx:1.25",
+                "ports": [
+                  {
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/this-path-does-not-exist",
+                    "port": 80,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 5,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "default"
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": "25%",
+            "maxSurge": "25%"
+          }
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:58Z",
+            "lastTransitionTime": "2026-03-11T21:24:58Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:58Z",
+            "lastTransitionTime": "2026-03-11T21:24:38Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"break-bad-probe-84fd687d57\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-crashloop",
+        "namespace": "default",
+        "uid": "c2b3c4d5-e6f7-a8b9-c0d1-e2f3a4b5c6d7",
+        "resourceVersion": "751",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:37Z",
+        "labels": {
+          "app": "break-crashloop"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-crashloop"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-crashloop"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "crasher",
+                "image": "busybox:1.36",
+                "command": [
+                  "sh",
+                  "-c",
+                  "exit 1"
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "default"
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": "25%",
+            "maxSurge": "25%"
+          }
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2026-03-11T21:24:38Z",
+            "lastTransitionTime": "2026-03-11T21:24:38Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:38Z",
+            "lastTransitionTime": "2026-03-11T21:24:37Z",
+            "reason": "ReplicaSetUpdated",
+            "message": "ReplicaSet \"break-crashloop-5684949b4c\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-imagepull",
+        "namespace": "default",
+        "uid": "d3c4d5e6-f7a8-b9c0-d1e2-f3a4b5c6d7e8",
+        "resourceVersion": "791",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:37Z",
+        "labels": {
+          "app": "break-imagepull"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-imagepull"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-imagepull"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "bad-image",
+                "image": "nginx:this-tag-does-not-exist-99999",
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "default"
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": "25%",
+            "maxSurge": "25%"
+          }
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2026-03-11T21:24:38Z",
+            "lastTransitionTime": "2026-03-11T21:24:38Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:38Z",
+            "lastTransitionTime": "2026-03-11T21:24:37Z",
+            "reason": "ReplicaSetUpdated",
+            "message": "ReplicaSet \"break-imagepull-9ffbc88b7\" is progressing."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "break-missing-config",
+        "namespace": "default",
+        "uid": "e4d5e6f7-a8b9-c0d1-e2f3-a4b5c6d7e8f9",
+        "resourceVersion": "795",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:37Z",
+        "labels": {
+          "app": "break-missing-config"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "break-missing-config"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "break-missing-config"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "app",
+                "image": "nginx:1.25",
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "default"
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": "25%",
+            "maxSurge": "25%"
+          }
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2026-03-11T21:24:38Z",
+            "lastTransitionTime": "2026-03-11T21:24:38Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:38Z",
+            "lastTransitionTime": "2026-03-11T21:24:37Z",
+            "reason": "ReplicaSetUpdated",
+            "message": "ReplicaSet \"break-missing-config-576f9d7cb\" is progressing."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "healthy-nginx",
+        "namespace": "default",
+        "uid": "f5e6f7a8-b9c0-d1e2-f3a4-b5c6d7e8f9a0",
+        "resourceVersion": "770",
+        "generation": 1,
+        "creationTimestamp": "2026-03-11T21:24:36Z",
+        "labels": {
+          "app": "healthy-nginx"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "matchLabels": {
+            "app": "healthy-nginx"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "healthy-nginx"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "nginx",
+                "image": "nginx:1.25",
+                "ports": [
+                  {
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "32Mi"
+                  }
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "default"
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": "25%",
+            "maxSurge": "25%"
+          }
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 3,
+        "updatedReplicas": 3,
+        "readyReplicas": 3,
+        "availableReplicas": 3,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:50Z",
+            "lastTransitionTime": "2026-03-11T21:24:50Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-03-11T21:24:50Z",
+            "lastTransitionTime": "2026-03-11T21:24:36Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"healthy-nginx-d5c6847bd\" has successfully progressed."
+          }
+        ]
+      }
+    }
+  ]
+}

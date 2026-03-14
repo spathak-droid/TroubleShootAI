@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "name": "no-limits-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z"
+  },
+  "spec": {
+    "nodeName": "node-1",
+    "containers": [
+      {
+        "name": "app",
+        "image": "myapp:latest",
+        "resources": {}
+      }
+    ]
+  },
+  "status": {
+    "phase": "Running",
+    "qosClass": "BestEffort",
+    "containerStatuses": [
+      {
+        "name": "app",
+        "ready": true,
+        "restartCount": 0,
+        "state": {
+          "running": {
+            "startedAt": "2024-01-15T10:00:05Z"
+          }
+        }
+      }
+    ]
+  }
+}

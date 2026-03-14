@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: healthy-redis
+  namespace: default
+  labels:
+    app: healthy-redis
+    purpose: demo-healthy
+spec:
+  replicas: 1
+  serviceName: healthy-redis
+  selector:
+    matchLabels:
+      app: healthy-redis
+  template:
+    metadata:
+      labels:
+        app: healthy-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 10

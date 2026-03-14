@@ -1,0 +1,9 @@
+{
+  "status": {
+    "resourceRules": [
+      {"verbs": ["get", "list"], "apiGroups": [""], "resources": ["pods"]},
+      {"verbs": ["get"], "apiGroups": [""], "resources": ["services"]},
+      {"verbs": [], "apiGroups": [""], "resources": ["secrets"]}
+    ]
+  }
+}

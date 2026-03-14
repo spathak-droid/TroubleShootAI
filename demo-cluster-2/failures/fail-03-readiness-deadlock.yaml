@@ -1,0 +1,55 @@
+---
+# FAILURE: Readiness probe checks a dependency that doesn't exist
+# Pod is Running but never Ready — removed from service endpoints.
+# Symptom: Deployment shows 0/2 READY, pods in Running state.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-svc
+  namespace: production
+  labels:
+    app: notification-svc
+    tier: backend
+    purpose: demo-failure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-svc
+  template:
+    metadata:
+      labels:
+        app: notification-svc
+        tier: backend
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9090   # Nothing listens on 9090 — readiness always fails
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-svc
+  namespace: production
+spec:
+  selector:
+    app: notification-svc
+  ports:
+    - port: 80
+      targetPort: 80

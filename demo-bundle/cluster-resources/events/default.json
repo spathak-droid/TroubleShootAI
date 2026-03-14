@@ -1,0 +1,304 @@
+{
+  "kind": "EventList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-bad-probe-84fd687d57-5fc6f.17e4a1b2c3d4e5f6",
+        "namespace": "default",
+        "uid": "evt-11111111-1111-1111-1111-111111111111",
+        "resourceVersion": "760",
+        "creationTimestamp": "2026-03-11T21:24:50Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "break-bad-probe-84fd687d57-5fc6f",
+        "uid": "d3fd3ba6-cc69-44dc-9a77-37e819d68b39",
+        "apiVersion": "v1",
+        "resourceVersion": "780",
+        "fieldPath": "spec.containers{nginx}"
+      },
+      "reason": "Unhealthy",
+      "message": "Liveness probe failed: HTTP probe failed with statuscode: 404",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:50Z",
+      "lastTimestamp": "2026-03-11T21:25:30Z",
+      "count": 8,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-bad-probe-84fd687d57-5fc6f.17e4a1b2c3d4e5f7",
+        "namespace": "default",
+        "uid": "evt-22222222-2222-2222-2222-222222222222",
+        "resourceVersion": "765",
+        "creationTimestamp": "2026-03-11T21:25:05Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "break-bad-probe-84fd687d57-5fc6f",
+        "uid": "d3fd3ba6-cc69-44dc-9a77-37e819d68b39",
+        "apiVersion": "v1",
+        "resourceVersion": "780",
+        "fieldPath": "spec.containers{nginx}"
+      },
+      "reason": "Killing",
+      "message": "Container nginx failed liveness probe, will be restarted",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:25:05Z",
+      "lastTimestamp": "2026-03-11T21:25:29Z",
+      "count": 2,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-crashloop-5684949b4c-v2x7d.17e4a1b2c3d4e5f8",
+        "namespace": "default",
+        "uid": "evt-33333333-3333-3333-3333-333333333333",
+        "resourceVersion": "740",
+        "creationTimestamp": "2026-03-11T21:24:42Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "break-crashloop-5684949b4c-v2x7d",
+        "uid": "f661e47c-b368-416b-806c-eb80242b4e68",
+        "apiVersion": "v1",
+        "resourceVersion": "751",
+        "fieldPath": "spec.containers{crasher}"
+      },
+      "reason": "BackOff",
+      "message": "Back-off restarting failed container crasher in pod break-crashloop-5684949b4c-v2x7d_default(f661e47c-b368-416b-806c-eb80242b4e68)",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:42Z",
+      "lastTimestamp": "2026-03-11T21:25:28Z",
+      "count": 5,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-imagepull-9ffbc88b7-9pxtb.17e4a1b2c3d4e5f9",
+        "namespace": "default",
+        "uid": "evt-44444444-4444-4444-4444-444444444444",
+        "resourceVersion": "745",
+        "creationTimestamp": "2026-03-11T21:24:42Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "break-imagepull-9ffbc88b7-9pxtb",
+        "uid": "3617f614-593f-45da-b9a6-2205006a2df7",
+        "apiVersion": "v1",
+        "resourceVersion": "791",
+        "fieldPath": "spec.containers{bad-image}"
+      },
+      "reason": "Failed",
+      "message": "Failed to pull image \"nginx:this-tag-does-not-exist-99999\": rpc error: code = NotFound desc = failed to pull and unpack image \"docker.io/library/nginx:this-tag-does-not-exist-99999\": failed to resolve reference \"docker.io/library/nginx:this-tag-does-not-exist-99999\": docker.io/library/nginx:this-tag-does-not-exist-99999: not found",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:42Z",
+      "lastTimestamp": "2026-03-11T21:25:25Z",
+      "count": 3,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-imagepull-9ffbc88b7-9pxtb.17e4a1b2c3d4e5fa",
+        "namespace": "default",
+        "uid": "evt-55555555-5555-5555-5555-555555555555",
+        "resourceVersion": "748",
+        "creationTimestamp": "2026-03-11T21:24:45Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "break-imagepull-9ffbc88b7-9pxtb",
+        "uid": "3617f614-593f-45da-b9a6-2205006a2df7",
+        "apiVersion": "v1",
+        "resourceVersion": "791",
+        "fieldPath": "spec.containers{bad-image}"
+      },
+      "reason": "ErrImagePull",
+      "message": "Error: ErrImagePull",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:45Z",
+      "lastTimestamp": "2026-03-11T21:25:25Z",
+      "count": 3,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-missing-config-576f9d7cb-2pv5w.17e4a1b2c3d4e5fb",
+        "namespace": "default",
+        "uid": "evt-66666666-6666-6666-6666-666666666666",
+        "resourceVersion": "750",
+        "creationTimestamp": "2026-03-11T21:24:40Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "break-missing-config-576f9d7cb-2pv5w",
+        "uid": "ef0aab05-3d8b-421a-b2d1-6b29d15e684c",
+        "apiVersion": "v1",
+        "resourceVersion": "795",
+        "fieldPath": "spec.containers{app}"
+      },
+      "reason": "FailedMount",
+      "message": "MountVolume.SetUp failed for volume \"config-volume\" : configmap \"app-config\" not found",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:40Z",
+      "lastTimestamp": "2026-03-11T21:25:30Z",
+      "count": 4,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "healthy-nginx-d5c6847bd-d8nwf.17e4a1b2c3d4e5fc",
+        "namespace": "default",
+        "uid": "evt-77777777-7777-7777-7777-777777777777",
+        "resourceVersion": "720",
+        "creationTimestamp": "2026-03-11T21:24:40Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "healthy-nginx-d5c6847bd-d8nwf",
+        "uid": "586da773-057f-4706-86ff-526988ee94df",
+        "apiVersion": "v1",
+        "resourceVersion": "770"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned default/healthy-nginx-d5c6847bd-d8nwf to bundle-analyzer-demo-control-plane",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "firstTimestamp": "2026-03-11T21:24:40Z",
+      "lastTimestamp": "2026-03-11T21:24:40Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": ""
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "healthy-nginx-d5c6847bd-d8nwf.17e4a1b2c3d4e5fd",
+        "namespace": "default",
+        "uid": "evt-88888888-8888-8888-8888-888888888888",
+        "resourceVersion": "725",
+        "creationTimestamp": "2026-03-11T21:24:42Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "healthy-nginx-d5c6847bd-d8nwf",
+        "uid": "586da773-057f-4706-86ff-526988ee94df",
+        "apiVersion": "v1",
+        "resourceVersion": "770",
+        "fieldPath": "spec.containers{nginx}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"nginx:1.25\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:42Z",
+      "lastTimestamp": "2026-03-11T21:24:42Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    },
+    {
+      "kind": "Event",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "healthy-nginx-d5c6847bd-d8nwf.17e4a1b2c3d4e5fe",
+        "namespace": "default",
+        "uid": "evt-99999999-9999-9999-9999-999999999999",
+        "resourceVersion": "726",
+        "creationTimestamp": "2026-03-11T21:24:42Z"
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "default",
+        "name": "healthy-nginx-d5c6847bd-d8nwf",
+        "uid": "586da773-057f-4706-86ff-526988ee94df",
+        "apiVersion": "v1",
+        "resourceVersion": "770",
+        "fieldPath": "spec.containers{nginx}"
+      },
+      "reason": "Started",
+      "message": "Started container nginx",
+      "source": {
+        "component": "kubelet",
+        "host": "bundle-analyzer-demo-control-plane"
+      },
+      "firstTimestamp": "2026-03-11T21:24:42Z",
+      "lastTimestamp": "2026-03-11T21:24:42Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "kubelet",
+      "reportingInstance": "bundle-analyzer-demo-control-plane"
+    }
+  ]
+}

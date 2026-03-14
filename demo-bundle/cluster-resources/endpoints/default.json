@@ -1,0 +1,128 @@
+{
+  "kind": "EndpointsList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "802"
+  },
+  "items": [
+    {
+      "kind": "Endpoints",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "kubernetes",
+        "namespace": "default",
+        "uid": "eee55555-5555-5555-5555-555555555555",
+        "resourceVersion": "210",
+        "creationTimestamp": "2026-03-11T21:20:00Z",
+        "labels": {
+          "endpointslice.kubernetes.io/skip-mirror": "true"
+        }
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "172.21.0.2"
+            }
+          ],
+          "ports": [
+            {
+              "name": "https",
+              "port": 6443,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Endpoints",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-bad-probe-svc",
+        "namespace": "default",
+        "uid": "fff66666-6666-6666-6666-666666666666",
+        "resourceVersion": "782",
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "break-bad-probe"
+        }
+      },
+      "subsets": [
+        {
+          "addresses": [
+            {
+              "ip": "10.244.0.12",
+              "nodeName": "bundle-analyzer-demo-control-plane",
+              "targetRef": {
+                "kind": "Pod",
+                "namespace": "default",
+                "name": "break-bad-probe-84fd687d57-5fc6f",
+                "uid": "d3fd3ba6-cc69-44dc-9a77-37e819d68b39"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "http",
+              "port": 80,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Endpoints",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "break-crashloop-svc",
+        "namespace": "default",
+        "uid": "aaa77777-7777-7777-7777-777777777777",
+        "resourceVersion": "755",
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "break-crashloop"
+        }
+      },
+      "subsets": [
+        {
+          "notReadyAddresses": [
+            {
+              "ip": "10.244.0.9",
+              "nodeName": "bundle-analyzer-demo-control-plane",
+              "targetRef": {
+                "kind": "Pod",
+                "namespace": "default",
+                "name": "break-crashloop-5684949b4c-v2x7d",
+                "uid": "f661e47c-b368-416b-806c-eb80242b4e68"
+              }
+            }
+          ],
+          "ports": [
+            {
+              "name": "http",
+              "port": 8080,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Endpoints",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "orphaned-svc",
+        "namespace": "default",
+        "uid": "bbb88888-8888-8888-8888-888888888888",
+        "resourceVersion": "714",
+        "creationTimestamp": "2026-03-11T21:24:38Z",
+        "labels": {
+          "app": "deleted-app"
+        }
+      },
+      "subsets": []
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+apiVersion: troubleshoot.sh/v1beta2
+kind: Preflight
+metadata:
+  name: bundle-analyzer-preflight
+spec:
+  collectors:
+    - clusterInfo: {}
+    - clusterResources: {}
+  analyzers:
+    # ──────────────────────────────────────────────
+    # Cluster version
+    # ──────────────────────────────────────────────
+    - clusterVersion:
+        outcomes:
+          - fail:
+              when: "< 1.26.0"
+              message: "Kubernetes version must be >= 1.26.0"
+          - warn:
+              when: "< 1.28.0"
+              message: "Kubernetes version is nearing end of support. Recommend >= 1.28.0"
+          - pass:
+              message: "Kubernetes version is supported"
+
+    # ──────────────────────────────────────────────
+    # Node resources
+    # ──────────────────────────────────────────────
+    - nodeResources:
+        checkName: Minimum node count
+        outcomes:
+          - fail:
+              when: "count() < 1"
+              message: "At least 1 node is required"
+          - pass:
+              message: "Node count is sufficient"
+
+    - nodeResources:
+        checkName: Minimum node memory
+        outcomes:
+          - fail:
+              when: "min(memoryCapacity) < 1Gi"
+              message: "Nodes must have at least 1Gi memory"
+          - warn:
+              when: "min(memoryCapacity) < 2Gi"
+              message: "Nodes should have at least 2Gi memory"
+          - pass:
+              message: "All nodes have sufficient memory"
+
+    - nodeResources:
+        checkName: Minimum node CPU
+        outcomes:
+          - warn:
+              when: "min(cpuCapacity) < 2"
+              message: "Nodes should have at least 2 CPU cores"
+          - pass:
+              message: "All nodes have sufficient CPU"
+
+    - nodeResources:
+        checkName: Node ephemeral storage
+        outcomes:
+          - warn:
+              when: "min(ephemeralStorageCapacity) < 5Gi"
+              message: "Nodes should have at least 5Gi ephemeral storage"
+          - pass:
+              message: "All nodes have sufficient ephemeral storage"
+
+    - nodeResources:
+        checkName: Node pod capacity
+        outcomes:
+          - warn:
+              when: "min(podCapacity) < 10"
+              message: "Nodes should support at least 10 pods"
+          - pass:
+              message: "All nodes have sufficient pod capacity"
+
+    # ──────────────────────────────────────────────
+    # Runtime and storage
+    # ──────────────────────────────────────────────
+    - containerRuntime:
+        outcomes:
+          - warn:
+              when: "!= containerd"
+              message: "containerd is the recommended container runtime"
+          - pass:
+              message: "Container runtime is containerd"
+
+    - storageClass:
+        checkName: Storage class exists
+        outcomes:
+          - fail:
+              when: "= 0"
+              message: "At least one storage class must exist"
+          - pass:
+              message: "Storage class is available"
+
+    # ──────────────────────────────────────────────
+    # Distribution
+    # ──────────────────────────────────────────────
+    - distribution:
+        outcomes:
+          - warn:
+              when: "== unknown"
+              message: "Could not determine Kubernetes distribution"
+          - pass:
+              message: "Kubernetes distribution detected"
+
+    # ──────────────────────────────────────────────
+    # Certificates
+    # ──────────────────────────────────────────────
+    - certificates:
+        checkName: TLS certificate validity
+        outcomes:
+          - fail:
+              when: "notAfter < 7d"
+              message: "One or more TLS certificates expire within 7 days — renew immediately"
+          - warn:
+              when: "notAfter < 30d"
+              message: "One or more TLS certificates expire within 30 days"
+          - pass:
+              message: "All TLS certificates are valid for at least 30 days"
+
+    # ──────────────────────────────────────────────
+    # Cluster health
+    # ──────────────────────────────────────────────
+    - clusterPodStatuses:
+        checkName: All pods healthy
+        outcomes:
+          - warn:
+              when: "!= Healthy"
+              message: "Unhealthy pods detected — cluster may not be ready"
+          - pass:
+              message: "All pods are healthy"
+
+    - clusterContainerStatuses:
+        checkName: Container stability
+        outcomes:
+          - warn:
+              when: "restartCount > 5"
+              message: "Containers with high restart counts detected"
+          - pass:
+              message: "All containers are stable"

@@ -1,0 +1,112 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "name": "crashloop-pod.event1",
+        "namespace": "default",
+        "creationTimestamp": "2024-01-15T10:05:00Z"
+      },
+      "type": "Warning",
+      "reason": "BackOff",
+      "message": "Back-off restarting failed container app in pod crashloop-pod: connection to postgres://admin:s3cretP@ss@10.0.5.23:5432/production failed",
+      "involvedObject": {
+        "kind": "Pod",
+        "name": "crashloop-pod",
+        "namespace": "default"
+      },
+      "firstTimestamp": "2024-01-15T10:01:00Z",
+      "lastTimestamp": "2024-01-15T10:05:00Z",
+      "count": 15
+    },
+    {
+      "metadata": {
+        "name": "crashloop-pod.event2",
+        "namespace": "default",
+        "creationTimestamp": "2024-01-15T10:04:00Z"
+      },
+      "type": "Warning",
+      "reason": "Unhealthy",
+      "message": "Liveness probe failed: HTTP probe failed with statuscode: 503",
+      "involvedObject": {
+        "kind": "Pod",
+        "name": "crashloop-pod",
+        "namespace": "default"
+      },
+      "firstTimestamp": "2024-01-15T10:02:00Z",
+      "lastTimestamp": "2024-01-15T10:04:00Z",
+      "count": 8
+    },
+    {
+      "metadata": {
+        "name": "crashloop-pod.event3",
+        "namespace": "default",
+        "creationTimestamp": "2024-01-15T10:06:00Z"
+      },
+      "type": "Warning",
+      "reason": "FailedMount",
+      "message": "MountVolume.SetUp failed for volume \"config-vol\" : configmap \"app-config\" not found",
+      "involvedObject": {
+        "kind": "Pod",
+        "name": "crashloop-pod",
+        "namespace": "default"
+      },
+      "firstTimestamp": "2024-01-15T10:05:00Z",
+      "lastTimestamp": "2024-01-15T10:06:00Z",
+      "count": 3
+    },
+    {
+      "metadata": {
+        "name": "imagepull-pod.event1",
+        "namespace": "default",
+        "creationTimestamp": "2024-01-15T10:02:00Z"
+      },
+      "type": "Warning",
+      "reason": "Failed",
+      "message": "Failed to pull image \"123456789012.dkr.ecr.us-east-1.amazonaws.com/myapp:v99\": unauthorized: authentication required for 123456789012.dkr.ecr.us-east-1.amazonaws.com",
+      "involvedObject": {
+        "kind": "Pod",
+        "name": "imagepull-pod",
+        "namespace": "default"
+      },
+      "firstTimestamp": "2024-01-15T10:02:00Z",
+      "lastTimestamp": "2024-01-15T10:04:00Z",
+      "count": 3
+    },
+    {
+      "metadata": {
+        "name": "oom-pod.event1",
+        "namespace": "default",
+        "creationTimestamp": "2024-01-15T10:03:00Z"
+      },
+      "type": "Warning",
+      "reason": "OOMKilling",
+      "message": "Memory cgroup out of memory: Killed process 12345 (java) total-vm:524288kB, anon-rss:262144kB on node ip-10-0-2-88.ec2.internal",
+      "involvedObject": {
+        "kind": "Pod",
+        "name": "oom-pod",
+        "namespace": "default"
+      },
+      "firstTimestamp": "2024-01-15T10:03:00Z",
+      "lastTimestamp": "2024-01-15T10:07:00Z",
+      "count": 8
+    },
+    {
+      "metadata": {
+        "name": "normal-event",
+        "namespace": "default",
+        "creationTimestamp": "2024-01-15T10:00:00Z"
+      },
+      "type": "Normal",
+      "reason": "Scheduled",
+      "message": "Successfully assigned default/healthy-pod to ip-10-0-1-45.ec2.internal",
+      "involvedObject": {
+        "kind": "Pod",
+        "name": "healthy-pod",
+        "namespace": "default"
+      },
+      "firstTimestamp": "2024-01-15T10:00:00Z",
+      "lastTimestamp": "2024-01-15T10:00:00Z",
+      "count": 1
+    }
+  ]
+}
