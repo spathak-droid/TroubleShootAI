@@ -1,0 +1,6 @@
+frontend/
+tests/
+*.md
+.claude/
+.env
+.env.example

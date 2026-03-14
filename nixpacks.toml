@@ -1,3 +1,6 @@
+# Force Python provider (Railway auto-detects Node.js due to frontend/package.json)
+providers = ["python"]
+
 [phases.setup]
 nixPkgs = ["python311"]
 
