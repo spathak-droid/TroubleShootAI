@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Mail, Lock, ArrowRight, Info } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -188,6 +189,16 @@ export default function LoginPage() {
             {isSignUp ? "Sign in" : "Sign up"}
           </button>
         </p>
+
+        {/* About link */}
+        <Link
+          href="/about"
+          className="flex items-center gap-1.5 text-xs transition-colors hover:underline underline-offset-2"
+          style={{ color: "var(--muted)" }}
+        >
+          <Info size={12} />
+          What is TroubleShootAI?
+        </Link>
       </motion.div>
     </div>
   );

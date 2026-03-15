@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -85,6 +85,7 @@ export default function HomePage() {
   const [bundles, setBundles] = useState<BundleInfo[]>([]);
   const [loadingBundles, setLoadingBundles] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   // Load past analyses on mount
   useEffect(() => {
@@ -193,7 +194,7 @@ export default function HomePage() {
             </span>
             <div className="h-3 w-px" style={{ background: "rgba(255,255,255,0.15)" }} />
             <button
-              onClick={() => signOut()}
+              onClick={() => setShowSignOutConfirm(true)}
               className="flex cursor-pointer items-center gap-1.5 text-xs transition-colors hover:text-white"
               style={{ color: "var(--muted)" }}
               title="Sign out"
@@ -246,7 +247,7 @@ export default function HomePage() {
               className="mt-1 text-sm font-medium"
               style={{ color: "var(--accent-light)" }}
             >
-              from log chaos to log structure
+              From Log Chaos to Log Structure
             </p>
           </div>
         </div>
@@ -581,6 +582,70 @@ export default function HomePage() {
           )}
         </motion.div>
       </motion.div>
+
+      {/* Sign-out confirmation modal */}
+      <AnimatePresence>
+        {showSignOutConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+            style={{ background: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)" }}
+            onClick={() => setShowSignOutConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="glass-card p-6 w-full max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{ background: "rgba(239, 68, 68, 0.15)" }}
+                >
+                  <LogOut size={18} style={{ color: "#f87171" }} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--foreground-bright)" }}>
+                    Sign out
+                  </h3>
+                  <p className="text-xs" style={{ color: "var(--muted)" }}>
+                    Are you sure you want to sign out?
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSignOutConfirm(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.06)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { setShowSignOutConfirm(false); signOut(); }}
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                  style={{
+                    background: "rgba(239, 68, 68, 0.2)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    color: "#f87171",
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

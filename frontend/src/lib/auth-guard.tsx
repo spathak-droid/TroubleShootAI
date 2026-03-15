@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./auth-context";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/about"];
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
