@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -22,8 +22,12 @@ class BundleRecord(Base):
     """
 
     __tablename__ = "bundle_analyses"
+    __table_args__ = (
+        Index("ix_bundle_analyses_user_id", "user_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(256), nullable=False, default="anonymous")
     filename: Mapped[str] = mapped_column(String(512), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="uploaded")
     uploaded_at: Mapped[datetime] = mapped_column(

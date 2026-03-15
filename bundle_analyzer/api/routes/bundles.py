@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from bundle_analyzer.api.deps import get_db, get_session, get_store
+from bundle_analyzer.api.firebase_auth import get_current_user
 from bundle_analyzer.api.schemas import (
     AnalysisStatusEnum,
     BundleInfo,
@@ -24,6 +25,7 @@ router = APIRouter(prefix="/bundles", tags=["bundles"])
 @router.post("/upload", response_model=UploadResponse)
 async def upload_bundle(
     file: UploadFile,
+    user_id: str = Depends(get_current_user),
     store: SessionStore = Depends(get_store),
     db: AsyncSession | None = Depends(get_db),
 ) -> UploadResponse:
@@ -31,6 +33,7 @@ async def upload_bundle(
 
     Args:
         file: The uploaded bundle file (tar.gz).
+        user_id: Authenticated Firebase user UID.
         store: Injected session store.
         db: Optional database session.
 
@@ -40,11 +43,11 @@ async def upload_bundle(
     dest = await save_upload(file)
     session = store.create(filename=file.filename or "bundle.tar.gz", bundle_path=dest)
 
-    # Persist to database
+    # Persist to database with user_id
     if db is not None:
         try:
             from bundle_analyzer.db.repository import create_bundle_record
-            await create_bundle_record(db, session.id, session.filename)
+            await create_bundle_record(db, session.id, session.filename, user_id=user_id)
         except Exception as exc:
             logger.warning("Failed to persist bundle to DB: {}", exc)
 
@@ -57,27 +60,26 @@ async def upload_bundle(
 
 @router.get("", response_model=list[BundleInfo])
 async def list_bundles(
+    user_id: str = Depends(get_current_user),
     store: SessionStore = Depends(get_store),
     db: AsyncSession | None = Depends(get_db),
 ) -> list[BundleInfo]:
-    """List all uploaded bundles (from DB if available, else in-memory).
+    """List bundles for the authenticated user.
 
     Args:
+        user_id: Authenticated Firebase user UID.
         store: Injected session store.
         db: Optional database session.
 
     Returns:
-        List of BundleInfo summaries.
+        List of BundleInfo summaries for this user only.
     """
-    # Try database first for persistent records (includes completed analyses)
+    # Try database first — filter by user_id
     if db is not None:
         try:
             from bundle_analyzer.db.repository import list_bundle_records
-            records = await list_bundle_records(db)
+            records = await list_bundle_records(db, user_id=user_id)
             results: list[BundleInfo] = []
-
-            # Get in-memory session IDs for merging live status
-            in_memory_ids = {s.id for s in store.list_all()}
 
             for record in records:
                 # If session is live in memory, use its current status
@@ -120,7 +122,7 @@ async def list_bundles(
         except Exception as exc:
             logger.warning("DB list failed, falling back to in-memory: {}", exc)
 
-    # Fallback: in-memory session store
+    # Fallback: in-memory session store (no user filtering)
     results = []
     for session in store.list_all():
         metadata = None
@@ -140,6 +142,7 @@ async def list_bundles(
 
 @router.delete("/{bundle_id}")
 async def delete_bundle(
+    user_id: str = Depends(get_current_user),
     session: BundleSession = Depends(get_session),
     store: SessionStore = Depends(get_store),
     db: AsyncSession | None = Depends(get_db),
@@ -147,6 +150,7 @@ async def delete_bundle(
     """Delete a bundle and clean up its files.
 
     Args:
+        user_id: Authenticated Firebase user UID.
         session: The bundle session to delete.
         store: Injected session store.
         db: Optional database session.
@@ -154,6 +158,17 @@ async def delete_bundle(
     Returns:
         Confirmation message.
     """
+    # Verify ownership
+    if db is not None:
+        try:
+            from bundle_analyzer.db.repository import get_bundle_record
+            record = await get_bundle_record(db, session.id)
+            if record is not None and record.user_id != user_id:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=403, detail="Not your bundle")
+        except ImportError:
+            pass
+
     # Clean up extracted files
     if session.extracted_root is not None and session.extracted_root.exists():
         try:

@@ -11,11 +11,34 @@ import type {
   InterviewAnswer,
   InterviewMessage,
 } from "./types";
+import { getFirebaseAuth } from "./firebase";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const auth = getFirebaseAuth();
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+  } catch {
+    // not logged in
+  }
+  return {};
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, init);
+  const authHeaders = await getAuthHeaders();
+  const mergedInit: RequestInit = {
+    ...init,
+    headers: {
+      ...authHeaders,
+      ...init?.headers,
+    },
+  };
+  const res = await fetch(`${BASE}${path}`, mergedInit);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${body}`);
@@ -118,7 +141,8 @@ export async function getEvaluationStatus(
 // ─── Export ─────────────────────────────────────────────────────
 
 async function downloadBlob(url: string, fallbackName: string): Promise<void> {
-  const res = await fetch(url);
+  const authHeaders = await getAuthHeaders();
+  const res = await fetch(url, { headers: authHeaders });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     let detail = `Export failed (${res.status})`;
@@ -180,11 +204,12 @@ export async function askQuestionStream(
   onDone: () => void,
   onError: (err: string) => void,
 ): Promise<void> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(
     `${BASE}/api/v1/bundles/${bundleId}/interview/${sessionId}/ask/stream`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({ question }),
     },
   );

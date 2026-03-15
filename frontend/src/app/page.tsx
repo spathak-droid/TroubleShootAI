@@ -16,8 +16,10 @@ import {
   FileText,
   Trash2,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { uploadBundle, listBundles, deleteBundle } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import type { BundleInfo } from "@/lib/types";
 
 function timeAgo(dateStr: string): string {
@@ -70,6 +72,7 @@ function statusLabel(status: string): string {
 
 export default function HomePage() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -166,6 +169,26 @@ export default function HomePage() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="flex w-full max-w-2xl flex-col items-center gap-10 pt-12"
       >
+        {/* User bar */}
+        {user && (
+          <div className="flex w-full items-center justify-end">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
+                {user.email}
+              </span>
+              <button
+                onClick={() => signOut()}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors hover:bg-white/5"
+                style={{ color: "var(--muted)" }}
+                title="Sign out"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col items-center gap-4 text-center">
           <motion.div

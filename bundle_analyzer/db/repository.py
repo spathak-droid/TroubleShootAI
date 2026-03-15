@@ -16,6 +16,7 @@ async def create_bundle_record(
     db: AsyncSession,
     bundle_id: str,
     filename: str,
+    user_id: str = "anonymous",
 ) -> BundleRecord:
     """Insert a new bundle record after upload.
 
@@ -23,12 +24,14 @@ async def create_bundle_record(
         db: Async database session.
         bundle_id: Unique bundle identifier.
         filename: Original uploaded filename.
+        user_id: Firebase user UID.
 
     Returns:
         The created BundleRecord.
     """
     record = BundleRecord(
         id=bundle_id,
+        user_id=user_id,
         filename=filename,
         status="uploaded",
         uploaded_at=datetime.now(timezone.utc),
@@ -36,7 +39,7 @@ async def create_bundle_record(
     db.add(record)
     await db.commit()
     await db.refresh(record)
-    logger.info("Created DB record for bundle {}", bundle_id)
+    logger.info("Created DB record for bundle {} (user={})", bundle_id, user_id)
     return record
 
 
@@ -142,18 +145,24 @@ async def get_bundle_record(
     return result.scalar_one_or_none()
 
 
-async def list_bundle_records(db: AsyncSession) -> list[BundleRecord]:
-    """Fetch all bundle records ordered by upload time (newest first).
+async def list_bundle_records(
+    db: AsyncSession,
+    user_id: str | None = None,
+) -> list[BundleRecord]:
+    """Fetch bundle records ordered by upload time (newest first).
 
     Args:
         db: Async database session.
+        user_id: If provided, only return records for this user.
 
     Returns:
         List of BundleRecord instances.
     """
-    result = await db.execute(
-        select(BundleRecord).order_by(BundleRecord.uploaded_at.desc())
-    )
+    query = select(BundleRecord)
+    if user_id is not None:
+        query = query.where(BundleRecord.user_id == user_id)
+    query = query.order_by(BundleRecord.uploaded_at.desc())
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
