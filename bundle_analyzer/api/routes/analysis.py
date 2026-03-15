@@ -315,3 +315,27 @@ async def get_evaluation_status(
         Dict with status field.
     """
     return {"status": session.evaluation_status}
+
+
+@router.get("/hypotheses")
+async def get_hypotheses(
+    session: BundleSession = Depends(get_session),
+) -> Any:
+    """Return ranked RCA hypotheses for a completed analysis.
+
+    Args:
+        session: The bundle session.
+
+    Returns:
+        List of hypothesis dicts, ranked by confidence.
+
+    Raises:
+        HTTPException: 404 if analysis has not completed yet.
+    """
+    if session.analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not yet complete. "
+            f"Current status: {session.status}",
+        )
+    return session.analysis.hypotheses

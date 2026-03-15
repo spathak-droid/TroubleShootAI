@@ -42,6 +42,7 @@ from bundle_analyzer.models.log_intelligence import (
 from bundle_analyzer.models.triage import (
     ConfigIssue,
     DeploymentIssue,
+    DNSIssue,
     DriftIssue,
     EventEscalation,
     IngressIssue,
@@ -53,8 +54,10 @@ from bundle_analyzer.models.triage import (
     QuotaIssue,
     RBACIssue,
     ResourceIssue,
+    SchedulingIssue,
     SilenceSignal,
     StorageIssue,
+    TLSIssue,
 )
 from bundle_analyzer.models.troubleshoot import (
     CoverageGap,
@@ -84,6 +87,9 @@ __all__ = [
     "RBACIssue",
     "QuotaIssue",
     "NetworkPolicyIssue",
+    "DNSIssue",
+    "TLSIssue",
+    "SchedulingIssue",
     "EventEscalation",
     # Log intelligence
     "LogWindow",

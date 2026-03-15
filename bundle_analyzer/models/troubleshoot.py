@@ -11,6 +11,7 @@ from .log_intelligence import CrashLoopContext, PodLogIntelligence
 from .triage import (
     ConfigIssue,
     DeploymentIssue,
+    DNSIssue,
     DriftIssue,
     EventEscalation,
     IngressIssue,
@@ -22,8 +23,10 @@ from .triage import (
     QuotaIssue,
     RBACIssue,
     ResourceIssue,
+    SchedulingIssue,
     SilenceSignal,
     StorageIssue,
+    TLSIssue,
 )
 
 
@@ -126,6 +129,9 @@ class TriageResult(BaseModel):
     rbac_issues: list[RBACIssue] = Field(default_factory=list)
     quota_issues: list[QuotaIssue] = Field(default_factory=list)
     network_policy_issues: list[NetworkPolicyIssue] = Field(default_factory=list)
+    dns_issues: list[DNSIssue] = Field(default_factory=list)
+    tls_issues: list[TLSIssue] = Field(default_factory=list)
+    scheduling_issues: list[SchedulingIssue] = Field(default_factory=list)
     crash_contexts: list[CrashLoopContext] = Field(default_factory=list)
     event_escalations: list[EventEscalation] = Field(default_factory=list)
     troubleshoot_analysis: TroubleshootAnalysis = Field(default_factory=TroubleshootAnalysis)

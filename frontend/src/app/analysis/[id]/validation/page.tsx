@@ -35,6 +35,10 @@ import type {
   SilenceSignal,
   K8sEvent,
   UncertaintyGap,
+  DNSIssue,
+  TLSIssue,
+  SchedulingIssue,
+  Hypothesis,
 } from "@/lib/types";
 import {
   AIFindingsCard,
@@ -57,7 +61,11 @@ import {
   SilenceSignalsSection,
   K8sEventsSection,
   UncertaintySection,
+  DNSIssuesSection,
+  TLSIssuesSection,
+  SchedulingIssuesSection,
 } from "./components";
+import { RootCauseSummary } from "../components/RootCauseSummary";
 
 export default function ValidationPage({
   params,
@@ -143,8 +151,14 @@ export default function ValidationPage({
   const silenceSignals = (triage.silence_signals ?? []) as SilenceSignal[];
   const k8sEvents = (triage.warning_events ?? triage.events ?? []) as K8sEvent[];
 
+  // New scanner data
+  const dnsIssues = (triage.dns_issues ?? []) as DNSIssue[];
+  const tlsIssues = (triage.tls_issues ?? []) as TLSIssue[];
+  const schedulingIssues = (triage.scheduling_issues ?? []) as SchedulingIssue[];
+
   // AI analysis data
   const uncertaintyGaps = (raw.uncertainty_gaps ?? raw.uncertainty ?? []) as UncertaintyGap[];
+  const hypotheses = (raw.hypotheses ?? []) as Hypothesis[];
 
   // Count active sections for the overview
   const sectionCounts = [
@@ -217,6 +231,9 @@ export default function ValidationPage({
       {/* Independent Evaluation */}
       <EvaluationSection bundleId={bundleId} expandedId={expandedId} onToggle={toggle} />
 
+      {/* Root Cause Hypotheses */}
+      <RootCauseSummary hypotheses={hypotheses} />
+
       {/* AI Findings */}
       <AIFindingsCard findings={aiFindings} expandedId={expandedId} onToggle={toggle} />
 
@@ -254,6 +271,15 @@ export default function ValidationPage({
 
       {/* Network Policy Issues */}
       <NetworkPolicySection issues={networkPolicyIssues} />
+
+      {/* DNS Issues */}
+      <DNSIssuesSection issues={dnsIssues} />
+
+      {/* TLS / Certificate Issues */}
+      <TLSIssuesSection issues={tlsIssues} />
+
+      {/* Scheduling Issues */}
+      <SchedulingIssuesSection issues={schedulingIssues} />
 
       {/* AI Log Diagnoses */}
       {logDiagnoses.length > 0 && (

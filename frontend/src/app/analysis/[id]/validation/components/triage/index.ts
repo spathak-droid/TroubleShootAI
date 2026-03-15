@@ -16,3 +16,6 @@ export { DriftIssuesSection } from "./DriftIssuesSection";
 export { SilenceSignalsSection } from "./SilenceSignalsSection";
 export { K8sEventsSection } from "./K8sEventsSection";
 export { UncertaintySection } from "./UncertaintySection";
+export { DNSIssuesSection } from "./DNSIssuesSection";
+export { TLSIssuesSection } from "./TLSIssuesSection";
+export { SchedulingIssuesSection } from "./SchedulingIssuesSection";

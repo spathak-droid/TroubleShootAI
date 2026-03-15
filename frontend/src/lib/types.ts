@@ -11,6 +11,9 @@ export interface PodIssue {
   restart_count?: number;
   exit_code?: number;
   timestamp?: string;
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface NodeIssue {
@@ -20,6 +23,9 @@ export interface NodeIssue {
   message: string;
   condition?: string;
   value?: string;
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface DeploymentIssue {
@@ -33,6 +39,9 @@ export interface DeploymentIssue {
   desired_replicas?: number;
   available_replicas?: number;
   ready_replicas?: number; // backend field name
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface ConfigIssue {
@@ -45,6 +54,9 @@ export interface ConfigIssue {
   message?: string;
   referenced_by?: string; // backend field name
   missing_key?: string; // backend field name
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface DriftIssue {
@@ -61,6 +73,9 @@ export interface DriftIssue {
   description?: string; // backend field name
   spec_value?: string | number | boolean | null;
   status_value?: string | number | boolean | null;
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface SilenceSignal {
@@ -73,6 +88,9 @@ export interface SilenceSignal {
   note?: string;
   possible_causes?: string[];
   severity: "critical" | "warning" | "info";
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface K8sEvent {
@@ -150,6 +168,9 @@ export interface RBACIssue {
   error_message: string;
   severity: 'critical' | 'warning' | 'info';
   suggested_permission: string;
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface QuotaIssue {
@@ -161,6 +182,9 @@ export interface QuotaIssue {
   limit: string;
   message: string;
   severity: 'critical' | 'warning' | 'info';
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface NetworkPolicyIssue {
@@ -170,6 +194,9 @@ export interface NetworkPolicyIssue {
   affected_pods: string[];
   message: string;
   severity: 'critical' | 'warning' | 'info';
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
 }
 
 export interface CrashLoopContext {
@@ -274,6 +301,52 @@ export interface LogDiagnosis {
   additional_context_needed: string[];
 }
 
+export interface DNSIssue {
+  namespace: string;
+  resource_name: string;
+  issue_type: 'coredns_pod_failure' | 'dns_resolution_error' | 'missing_endpoints' | 'coredns_config_error';
+  message: string;
+  severity: 'critical' | 'warning' | 'info';
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
+}
+
+export interface TLSIssue {
+  namespace: string;
+  resource_name: string;
+  issue_type: 'cert_expired' | 'bad_certificate' | 'unknown_authority' | 'missing_tls_secret';
+  message: string;
+  severity: 'critical' | 'warning' | 'info';
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
+}
+
+export interface SchedulingIssue {
+  namespace: string;
+  pod_name: string;
+  issue_type: 'insufficient_cpu' | 'insufficient_memory' | 'taint_not_tolerated' | 'node_affinity_mismatch' | 'pod_affinity_conflict' | 'node_selector_mismatch' | 'unschedulable_node';
+  message: string;
+  severity: 'critical' | 'warning' | 'info';
+  source_file?: string;
+  evidence_excerpt?: string;
+  confidence?: number;
+}
+
+export interface Hypothesis {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  confidence: number;
+  supporting_evidence: string[];
+  contradicting_evidence: string[];
+  affected_resources: string[];
+  suggested_fixes: string[];
+  is_validated: boolean;
+}
+
 export interface TriageResult {
   pod_issues: PodIssue[];
   node_issues: NodeIssue[];
@@ -287,6 +360,9 @@ export interface TriageResult {
   network_policy_issues: NetworkPolicyIssue[];
   crash_contexts: CrashLoopContext[];
   event_escalations: EventEscalation[];
+  dns_issues: DNSIssue[];
+  tls_issues: TLSIssue[];
+  scheduling_issues: SchedulingIssue[];
   coverage_gaps: CoverageGap[];
   pod_anomalies: PodAnomaly[];
   dependency_map?: DependencyMap | null;
@@ -373,6 +449,7 @@ export interface AnalysisResult {
   predictions: PredictedFailure[];
   uncertainty_gaps: UncertaintyGap[];
   log_diagnoses: LogDiagnosis[];
+  hypotheses: Hypothesis[];
   triage?: TriageResult;
   summary: {
     critical_count: number;

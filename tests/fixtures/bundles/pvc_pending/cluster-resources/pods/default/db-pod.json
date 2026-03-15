@@ -1,0 +1,31 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "db-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-10T08:00:00Z"
+  },
+  "status": {
+    "phase": "Pending",
+    "conditions": [
+      {
+        "type": "PodScheduled",
+        "status": "True"
+      }
+    ],
+    "containerStatuses": [
+      {
+        "name": "postgres",
+        "restartCount": 0,
+        "state": {
+          "waiting": {
+            "reason": "ContainerCreating",
+            "message": "MountVolume.SetUp failed for volume \"data-vol\" : configmap \"db-config\" not found"
+          }
+        },
+        "lastState": {}
+      }
+    ]
+  }
+}

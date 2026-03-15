@@ -1,0 +1,5 @@
+{
+  "expected_issue_types": ["Pending", "insufficient_cpu"],
+  "expected_min_count": 1,
+  "description": "Pending pod due to FailedScheduling with insufficient CPU"
+}

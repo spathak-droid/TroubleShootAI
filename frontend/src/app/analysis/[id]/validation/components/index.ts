@@ -25,4 +25,7 @@ export {
   SilenceSignalsSection,
   K8sEventsSection,
   UncertaintySection,
+  DNSIssuesSection,
+  TLSIssuesSection,
+  SchedulingIssuesSection,
 } from "./triage";

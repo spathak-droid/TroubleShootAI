@@ -1,0 +1,5 @@
+{
+  "expected_issue_types": ["ImagePullBackOff"],
+  "expected_min_count": 1,
+  "description": "Pod with ImagePullBackOff due to image not found"
+}

@@ -1,0 +1,5 @@
+{
+  "expected_issue_types": [],
+  "expected_min_count": 0,
+  "description": "Normal running pod. TLS errors would be detected via log scanning or certificate files, which are not included in this minimal fixture. This fixture validates that no false positives are raised for a healthy pod."
+}

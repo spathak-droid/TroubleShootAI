@@ -34,3 +34,4 @@ class AnalysisResult(BaseModel):
     analysis_duration_seconds: float
     sanitization_summary: str = ""  # e.g. "Redacted 47 patterns (23 credentials, 12 PII)"
     evaluation: EvaluationResult | None = None
+    hypotheses: list[dict] = Field(default_factory=list)  # ranked RCA hypotheses

@@ -34,6 +34,8 @@ from bundle_analyzer.ai.orchestration.steps.causal import run_causal_analysis
 from bundle_analyzer.ai.orchestration.steps.log_analysis import run_log_analysis
 from bundle_analyzer.ai.orchestration.steps.prediction import run_prediction
 from bundle_analyzer.ai.orchestration.steps.synthesis import run_synthesis
+from bundle_analyzer.ai.validation.claim_validator import ClaimValidator
+from bundle_analyzer.rca.hypothesis_engine import HypothesisEngine
 
 
 class AnalysisOrchestrator:
@@ -90,6 +92,12 @@ class AnalysisOrchestrator:
             logger.error("Failed to create API client: {}", exc)
             return await self._triage_only_result(triage, index, start_time)
 
+        # Step 0.5: Hypothesis generation (deterministic, before AI)
+        await report_progress(progress_callback, "hypotheses", 0.03, "Generating root-cause hypotheses...")
+        hypothesis_engine = HypothesisEngine()
+        hypotheses = await hypothesis_engine.analyze(triage)
+        logger.info("Generated {} hypotheses from triage findings", len(hypotheses))
+
         # Step 1: Archaeology (deterministic timeline reconstruction)
         await report_progress(progress_callback, "archaeology", 0.05, "Reconstructing cluster timeline...")
         timeline = await self._run_archaeology(triage, index)
@@ -138,9 +146,27 @@ class AnalysisOrchestrator:
         for output in analyst_outputs:
             all_findings.extend(output.findings)
 
+        # Step 7.5: Validate AI claims against evidence
+        if all_findings:
+            try:
+                claim_validator = ClaimValidator()
+                validation_result = await claim_validator.validate(all_findings, index)
+                all_findings = validation_result.findings
+                logger.info(
+                    "Claim validation: {}/{} evidence verified, {} hypotheses",
+                    validation_result.total_verified,
+                    validation_result.total_verified + validation_result.total_unverified,
+                    validation_result.hypothesis_count,
+                )
+            except Exception as exc:
+                logger.warning("Claim validation failed, using unvalidated findings: {}", exc)
+
         # Sort findings by severity (critical first)
         severity_order = {"critical": 0, "warning": 1, "info": 2}
         all_findings.sort(key=lambda f: severity_order.get(f.severity, 99))
+
+        # Serialize hypotheses for the result
+        hypotheses_dicts = [h.model_dump() for h in hypotheses]
 
         result = AnalysisResult(
             bundle_metadata=index.metadata,
@@ -156,6 +182,7 @@ class AnalysisOrchestrator:
             preflight_report=triage.preflight_report,
             cluster_summary=build_cluster_summary(triage, index),
             analysis_duration_seconds=elapsed,
+            hypotheses=hypotheses_dicts,
         )
 
         logger.info(
@@ -227,8 +254,8 @@ class AnalysisOrchestrator:
     ) -> AnalysisResult:
         """Build a result with only triage data (no AI analysis).
 
-        Still runs deterministic engines (archaeology, prediction) since
-        they don't require API keys.
+        Still runs deterministic engines (archaeology, prediction, hypotheses)
+        since they don't require API keys.
 
         Args:
             triage: The triage scan results.
@@ -241,6 +268,15 @@ class AnalysisOrchestrator:
         # Run deterministic engines even without AI key
         timeline = await self._run_archaeology(triage, index)
         predictions = await self._run_prediction(triage, index)
+
+        # Generate hypotheses even without AI
+        try:
+            hypothesis_engine = HypothesisEngine()
+            hypotheses = await hypothesis_engine.analyze(triage)
+            hypotheses_dicts = [h.model_dump() for h in hypotheses]
+        except Exception as exc:
+            logger.warning("Hypothesis generation failed: {}", exc)
+            hypotheses_dicts = []
 
         elapsed = time.monotonic() - start_time
         return AnalysisResult(
@@ -264,4 +300,5 @@ class AnalysisOrchestrator:
             preflight_report=triage.preflight_report,
             cluster_summary=build_cluster_summary(triage, index),
             analysis_duration_seconds=elapsed,
+            hypotheses=hypotheses_dicts,
         )

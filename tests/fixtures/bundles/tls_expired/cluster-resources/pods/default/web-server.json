@@ -1,0 +1,25 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "web-server",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z"
+  },
+  "status": {
+    "phase": "Running",
+    "containerStatuses": [
+      {
+        "name": "nginx",
+        "restartCount": 0,
+        "ready": true,
+        "state": {
+          "running": {
+            "startedAt": "2024-01-15T10:01:00Z"
+          }
+        },
+        "lastState": {}
+      }
+    ]
+  }
+}

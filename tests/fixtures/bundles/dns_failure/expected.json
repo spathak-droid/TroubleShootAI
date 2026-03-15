@@ -1,0 +1,5 @@
+{
+  "expected_issue_types": ["CrashLoopBackOff", "coredns_pod_failure"],
+  "expected_min_count": 1,
+  "description": "CoreDNS pod in CrashLoopBackOff — should be detected by both PodScanner and DNSScanner"
+}

@@ -34,6 +34,9 @@ class PodIssue(BaseModel):
     message: str = ""
     log_path: str | None = None
     previous_log_path: str | None = None
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class NodeIssue(BaseModel):
@@ -54,6 +57,9 @@ class NodeIssue(BaseModel):
     memory_usage_pct: float | None = None
     cpu_usage_pct: float | None = None
     message: str = ""
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class DeploymentIssue(BaseModel):
@@ -69,6 +75,9 @@ class DeploymentIssue(BaseModel):
     ready_replicas: int
     issue: str  # e.g. "0/3 replicas ready"
     stuck_rollout: bool = False
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class ConfigIssue(BaseModel):
@@ -84,6 +93,9 @@ class ConfigIssue(BaseModel):
     referenced_by: str  # pod/deployment name
     issue: Literal["missing", "missing_key", "wrong_namespace"]
     missing_key: str | None = None
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class DriftIssue(BaseModel):
@@ -100,6 +112,9 @@ class DriftIssue(BaseModel):
     spec_value: Any
     status_value: Any
     description: str
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class SilenceSignal(BaseModel):
@@ -121,6 +136,9 @@ class SilenceSignal(BaseModel):
     severity: Literal["critical", "warning", "info"] = "warning"
     possible_causes: list[str] = Field(default_factory=list)
     note: str = ""
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class K8sEvent(BaseModel):
@@ -152,6 +170,9 @@ class ProbeIssue(BaseModel):
     issue: str  # "bad_path", "no_readiness_probe", "same_endpoint", "missing_startup"
     message: str
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class ResourceIssue(BaseModel):
@@ -164,6 +185,9 @@ class ResourceIssue(BaseModel):
     message: str
     resource_type: str  # "cpu", "memory"
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class IngressIssue(BaseModel):
@@ -174,6 +198,9 @@ class IngressIssue(BaseModel):
     issue: str  # "missing_service", "port_mismatch", "missing_tls_secret"
     message: str
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class StorageIssue(BaseModel):
@@ -185,6 +212,9 @@ class StorageIssue(BaseModel):
     issue: str  # "pending", "missing_storage_class", "released", "failed"
     message: str
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class RBACIssue(BaseModel):
@@ -195,6 +225,9 @@ class RBACIssue(BaseModel):
     error_message: str
     severity: Literal["critical", "warning", "info"] = "warning"
     suggested_permission: str = ""  # e.g. "get pods"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class QuotaIssue(BaseModel):
@@ -208,6 +241,9 @@ class QuotaIssue(BaseModel):
     limit: str = ""
     message: str
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class NetworkPolicyIssue(BaseModel):
@@ -219,6 +255,9 @@ class NetworkPolicyIssue(BaseModel):
     affected_pods: list[str] = Field(default_factory=list)
     message: str
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
 
 
 class EventEscalation(BaseModel):
@@ -234,3 +273,63 @@ class EventEscalation(BaseModel):
     escalation_type: Literal["repeated", "cascading", "sustained"]
     message: str
     severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
+
+
+class DNSIssue(BaseModel):
+    """A detected DNS or CoreDNS issue."""
+
+    namespace: str
+    resource_name: str
+    issue_type: Literal[
+        "coredns_pod_failure",
+        "dns_resolution_error",
+        "missing_endpoints",
+        "coredns_config_error",
+    ]
+    message: str
+    severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
+
+
+class TLSIssue(BaseModel):
+    """A detected TLS or certificate issue."""
+
+    namespace: str
+    resource_name: str
+    issue_type: Literal[
+        "cert_expired",
+        "bad_certificate",
+        "unknown_authority",
+        "missing_tls_secret",
+    ]
+    message: str
+    severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0
+
+
+class SchedulingIssue(BaseModel):
+    """A detected pod scheduling issue (FailedScheduling, taints, affinity)."""
+
+    namespace: str
+    pod_name: str
+    issue_type: Literal[
+        "insufficient_cpu",
+        "insufficient_memory",
+        "taint_not_tolerated",
+        "node_affinity_mismatch",
+        "pod_affinity_conflict",
+        "node_selector_mismatch",
+        "unschedulable_node",
+    ]
+    message: str
+    severity: Literal["critical", "warning", "info"] = "warning"
+    source_file: str | None = None
+    evidence_excerpt: str | None = None
+    confidence: float = 1.0

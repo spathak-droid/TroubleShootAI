@@ -1,0 +1,5 @@
+{
+  "expected_issue_types": ["OOMKilled"],
+  "expected_min_count": 1,
+  "description": "OOM-killed pod in CrashLoopBackOff. Scanner reports OOMKilled as root cause (overrides CrashLoopBackOff)."
+}

@@ -16,6 +16,19 @@ from bundle_analyzer.models import PodIssue
 if TYPE_CHECKING:
     from bundle_analyzer.bundle.indexer import BundleIndex
 
+# Confidence values for different issue types
+_CONFIDENCE_MAP: dict[str, float] = {
+    "CrashLoopBackOff": 1.0,
+    "OOMKilled": 1.0,
+    "ImagePullBackOff": 0.95,
+    "CreateContainerConfigError": 1.0,
+    "InitContainerFailed": 0.9,
+    "Evicted": 0.95,
+    "FailedMount": 0.9,
+    "Terminating": 0.7,
+    "Pending": 0.6,  # default for pending; refined based on conditions
+}
+
 # Issue types considered critical (vs warning)
 _CRITICAL_ISSUE_TYPES = frozenset({
     "CrashLoopBackOff",
@@ -37,16 +50,32 @@ class PodScanner:
     and high restart counts. Populates log paths for each flagged pod.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[PodIssue]:
+    async def scan(
+        self,
+        index: "BundleIndex",
+        collection_time: datetime | None = None,
+    ) -> list[PodIssue]:
         """Scan all pods and return detected issues.
 
         Args:
             index: The bundle index providing access to pod JSON data.
+            collection_time: Bundle collection timestamp. If None, derived
+                from ``index.metadata.collected_at`` or falls back to the
+                newest file mtime in the bundle.
 
         Returns:
             A list of PodIssue objects for every problematic pod found.
         """
         issues: list[PodIssue] = []
+
+        # Determine reference time: bundle collection time, NOT wall clock
+        if collection_time is None:
+            if hasattr(index, "metadata") and index.metadata and index.metadata.collected_at:
+                collection_time = index.metadata.collected_at
+            else:
+                collection_time = datetime.now(timezone.utc)
+                logger.debug("No collection_time available — falling back to wall clock")
+        self._collection_time = collection_time
 
         try:
             pods = list(index.get_all_pods())
@@ -104,17 +133,22 @@ class PodScanner:
         status: dict,
         namespace: str,
         pod_name: str,
+        source_file: str | None = None,
     ) -> PodIssue | None:
-        """Check if a Pending pod has been pending too long."""
+        """Check if a Pending pod has been pending too long.
+
+        Uses bundle collection time (not wall clock) as the reference.
+        """
         creation_ts = metadata.get("creationTimestamp")
         if creation_ts is None:
-            # No timestamp — flag it anyway since it is Pending
             return PodIssue(
                 namespace=namespace,
                 pod_name=pod_name,
                 container_name=None,
                 issue_type="Pending",
                 message="Pod is in Pending phase (no creation timestamp to check age)",
+                confidence=0.5,
+                source_file=source_file,
             )
 
         try:
@@ -122,10 +156,12 @@ class PodScanner:
                 created = datetime.fromisoformat(creation_ts.replace("Z", "+00:00"))
             else:
                 created = creation_ts
-            age_seconds = (datetime.now(timezone.utc) - created).total_seconds()
+            # Use bundle collection time, NOT wall clock
+            ref_time = getattr(self, "_collection_time", None) or datetime.now(timezone.utc)
+            age_seconds = (ref_time - created).total_seconds()
         except (ValueError, TypeError) as exc:
             logger.debug("Could not parse creationTimestamp for {}/{}: {}", namespace, pod_name, exc)
-            age_seconds = _PENDING_THRESHOLD_SECONDS + 1  # flag it if we can't parse
+            age_seconds = _PENDING_THRESHOLD_SECONDS + 1
 
         if age_seconds > _PENDING_THRESHOLD_SECONDS:
             conditions = status.get("conditions", [])
@@ -133,6 +169,11 @@ class PodScanner:
             for cond in conditions:
                 if cond.get("status") != "True" and cond.get("message"):
                     message_parts.append(cond["message"])
+
+            # Higher confidence if we have clear condition messages
+            confidence = 0.9 if message_parts else 0.6
+            evidence = "; ".join(message_parts) if message_parts else None
+
             return PodIssue(
                 namespace=namespace,
                 pod_name=pod_name,
@@ -140,6 +181,9 @@ class PodScanner:
                 issue_type="Pending",
                 message=f"Pending for {int(age_seconds)}s. {'; '.join(message_parts)}" if message_parts
                 else f"Pending for {int(age_seconds)}s",
+                confidence=confidence,
+                source_file=source_file,
+                evidence_excerpt=evidence,
             )
         return None
 
@@ -217,6 +261,11 @@ class PodScanner:
         log_path = self._find_log_path(index, namespace, pod_name, container_name, previous=False)
         previous_log_path = self._find_log_path(index, namespace, pod_name, container_name, previous=True)
 
+        # Determine confidence based on issue type and restart count
+        confidence = _CONFIDENCE_MAP.get(detected_issue_type, 0.8)
+        if detected_issue_type == "CrashLoopBackOff" and restart_count > _HIGH_RESTART_THRESHOLD:
+            confidence = 1.0
+
         issues.append(PodIssue(
             namespace=namespace,
             pod_name=pod_name,
@@ -227,6 +276,8 @@ class PodScanner:
             message=message,
             log_path=log_path,
             previous_log_path=previous_log_path,
+            confidence=confidence,
+            evidence_excerpt=message if message else None,
         ))
 
         return issues

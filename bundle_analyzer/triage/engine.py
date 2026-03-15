@@ -27,6 +27,9 @@ from bundle_analyzer.triage.rbac_scanner import RBACScanner
 from bundle_analyzer.triage.resource_scanner import ResourceScanner
 from bundle_analyzer.triage.silence_scanner import SilenceScanner
 from bundle_analyzer.triage.storage_scanner import StorageScanner
+from bundle_analyzer.triage.dns_scanner import DNSScanner
+from bundle_analyzer.triage.scheduling_scanner import SchedulingScanner
+from bundle_analyzer.triage.tls_scanner import TLSScanner
 from bundle_analyzer.triage.troubleshoot_scanner import TroubleshootAnalyzerScanner
 from bundle_analyzer.triage.coverage_analyzer import CoverageAnalyzer
 from bundle_analyzer.triage.anomaly_detector import AnomalyDetector
@@ -72,6 +75,9 @@ class TriageEngine:
         self.quota_scanner = QuotaScanner()
         self.network_policy_scanner = NetworkPolicyScanner()
         self.crashloop_analyzer = CrashLoopAnalyzer()
+        self.dns_scanner = DNSScanner()
+        self.tls_scanner = TLSScanner()
+        self.scheduling_scanner = SchedulingScanner()
         self.troubleshoot_scanner = TroubleshootAnalyzerScanner()
         self.coverage_analyzer = CoverageAnalyzer()
         self.anomaly_detector = AnomalyDetector()
@@ -88,7 +94,7 @@ class TriageEngine:
         Returns:
             A TriageResult containing all findings from every scanner.
         """
-        logger.info("Starting triage engine with all 15 scanners")
+        logger.info("Starting triage engine with all 18 scanners")
 
         # Run all scanners in parallel
         results = await asyncio.gather(
@@ -107,6 +113,9 @@ class TriageEngine:
             self.quota_scanner.scan(index),
             self.network_policy_scanner.scan(index),
             self.crashloop_analyzer.scan(index),
+            self.dns_scanner.scan(index),
+            self.tls_scanner.scan(index),
+            self.scheduling_scanner.scan(index),
             return_exceptions=True,
         )
 
@@ -127,6 +136,9 @@ class TriageEngine:
         quota_issues = self._safe_result(results[12], "QuotaScanner", [])
         network_policy_issues = self._safe_result(results[13], "NetworkPolicyScanner", [])
         crash_contexts = self._safe_result(results[14], "CrashLoopAnalyzer", [])
+        dns_issues = self._safe_result(results[15], "DNSScanner", [])
+        tls_issues = self._safe_result(results[16], "TLSScanner", [])
+        scheduling_issues = self._safe_result(results[17], "SchedulingScanner", [])
 
         # Separate pod issues into critical and warning
         critical_pods = [p for p in pod_issues if p.issue_type in _CRITICAL_TYPES]
@@ -163,6 +175,9 @@ class TriageEngine:
             rbac_issues=rbac_issues,
             quota_issues=quota_issues,
             network_policy_issues=network_policy_issues,
+            dns_issues=dns_issues,
+            tls_issues=tls_issues,
+            scheduling_issues=scheduling_issues,
             crash_contexts=crash_contexts,
             event_escalations=event_escalations,
         )
@@ -223,14 +238,16 @@ class TriageEngine:
             + len(probe_issues) + len(resource_issues) + len(ingress_issues)
             + len(storage_issues) + len(event_escalations)
             + len(rbac_issues) + len(quota_issues) + len(network_policy_issues)
-            + len(crash_contexts)
+            + len(crash_contexts) + len(dns_issues) + len(tls_issues)
+            + len(scheduling_issues)
         )
         logger.info(
             "Triage complete: {} total findings "
             "({} critical pods, {} warning pods, {} node, {} deployment, "
             "{} config, {} drift, {} silence, {} events, {} escalations, "
             "{} probe, {} resource, {} ingress, {} storage, "
-            "{} rbac, {} quota, {} network policy, {} crash contexts)",
+            "{} rbac, {} quota, {} network policy, {} crash contexts, "
+            "{} dns, {} tls, {} scheduling)",
             total,
             len(critical_pods),
             len(warning_pods),
@@ -249,6 +266,9 @@ class TriageEngine:
             len(quota_issues),
             len(network_policy_issues),
             len(crash_contexts),
+            len(dns_issues),
+            len(tls_issues),
+            len(scheduling_issues),
         )
 
         return result

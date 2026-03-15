@@ -1,0 +1,25 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "bad-image-pod",
+    "namespace": "default",
+    "creationTimestamp": "2024-01-15T10:00:00Z"
+  },
+  "status": {
+    "phase": "Pending",
+    "containerStatuses": [
+      {
+        "name": "app",
+        "restartCount": 0,
+        "state": {
+          "waiting": {
+            "reason": "ImagePullBackOff",
+            "message": "Back-off pulling image \"registry.example.com/myapp:latest\": image not found"
+          }
+        },
+        "lastState": {}
+      }
+    ]
+  }
+}
