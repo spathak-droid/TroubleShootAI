@@ -239,16 +239,16 @@ export default function ValidationPage({
           Validation
         </h1>
         <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted)" }} />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2" style={{ color: "var(--foreground)", opacity: 0.5 }} />
           <input
             type="text"
             placeholder="Search findings, logs, events..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-modern w-full pl-9 pr-8 py-2 text-sm rounded-lg"
+            className="w-full pl-9 pr-8 py-2 text-sm rounded-lg transition-colors focus:border-[var(--accent-light)]"
             style={{
               background: "var(--glass-bg)",
-              border: "1px solid var(--glass-border)",
+              border: "1px solid rgba(99, 102, 241, 0.35)",
               color: "var(--foreground-bright)",
               outline: "none",
             }}
@@ -256,9 +256,9 @@ export default function ValidationPage({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-80"
+              className="absolute right-3 top-1/2 z-10 -translate-y-1/2 hover:opacity-80"
             >
-              <X size={14} style={{ color: "var(--muted)" }} />
+              <X size={14} style={{ color: "var(--foreground)", opacity: 0.5 }} />
             </button>
           )}
         </div>
