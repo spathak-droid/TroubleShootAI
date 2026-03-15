@@ -1,0 +1,13 @@
+# Kind cluster config for live testing
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            # Small node to force scheduling failures
+            system-reserved: "cpu=500m,memory=500Mi"

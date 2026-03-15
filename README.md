@@ -2,16 +2,99 @@
 
 AI-powered Kubernetes support bundle forensics. Upload a support bundle, get instant root cause analysis with correlated timelines and actionable fix recommendations — all grounded in evidence from your actual cluster data.
 
-**Live:** [troubleshootai.vercel.app](https://troubleshootai.vercel.app) (frontend) • Railway backend
+**Live App:** [troubleshootai-production.up.railway.app](https://troubleshootai-production.up.railway.app)
+
+---
+
+## Try It Now (5 minutes)
+
+### What you need
+- Docker Desktop (running)
+- `kind` and `kubectl` installed
+
+### Step 1: Create a broken cluster
+
+```bash
+# Clone the repo
+git clone https://github.com/spathak-droid/TroubleShootAI.git
+cd TroubleShootAI
+
+# Create a Kind cluster
+kind create cluster --name test-cluster --wait 60s
+
+# Deploy 8 broken workloads (CrashLoop, OOM, ImagePull, Pending, NetworkPolicy, DNS, missing config, no endpoints)
+kubectl apply -f scripts/live_test/broken-workloads.yaml
+
+# Wait 60 seconds for failures to fully manifest
+sleep 60
+
+# Check — you should see CrashLoopBackOff, OOMKilled, ImagePullBackOff, Pending, Error
+kubectl get pods
+```
+
+### Step 2: Install Troubleshoot and collect a bundle
+
+```bash
+# Install the Troubleshoot kubectl plugin (one-time)
+curl -L https://github.com/replicatedhq/troubleshoot/releases/latest/download/support-bundle_darwin_all.tar.gz | tar xz
+mkdir -p ~/bin && mv support-bundle ~/bin/kubectl-support_bundle
+export PATH="$HOME/bin:$PATH"
+
+# Collect a support bundle (produces a single .tar.gz)
+kubectl-support_bundle scripts/live_test/support-bundle.yaml \
+  --output bundle.tar.gz \
+  --interactive=false
+```
+
+> **Note:** Troubleshoot.sh will report "1 passed, 0 warnings, 0 failures" — it only runs the basic analyzers defined in the spec. It misses all 8 failure scenarios. That's where TroubleShootAI comes in.
+
+### Step 3: Upload to TroubleShootAI
+
+1. Go to **[troubleshootai-production.up.railway.app](https://troubleshootai-production.up.railway.app)**
+2. Upload `bundle.tar.gz`
+3. Watch the analysis run in real-time
+
+The analyzer will detect:
+- **CrashLoopBackOff** — pods crashing because database is unreachable
+- **OOMKilled** — container memory limit exceeded (exit code 137)
+- **ImagePullBackOff** — image tag doesn't exist
+- **Pending / FailedScheduling** — pod requests more CPU than cluster has
+- **CreateContainerConfigError** — missing ConfigMap reference
+- **NetworkPolicy deny-all** — pod is network-isolated
+- **Service with no endpoints** — selector matches nothing
+- **DNS NXDOMAIN** — services that don't exist
+
+### Step 4: Clean up
+
+```bash
+kind delete cluster --name test-cluster
+```
+
+---
 
 ## What It Does
 
-TroubleShootAI takes a Kubernetes support bundle (`.tar.gz` from [Replicated Troubleshoot](https://troubleshoot.sh/), kubectl, or custom collectors) and runs a two-stage analysis:
+TroubleShootAI takes a Kubernetes support bundle (`.tar.gz` from [Replicated Troubleshoot](https://troubleshoot.sh/)) and runs a two-stage analysis:
 
 1. **Deterministic Triage** — 24 parallel scanners detect 20+ issue categories using pattern matching. No tokens spent on what regex can catch.
 2. **AI Root Cause Analysis** — Claude receives the triage output (never raw files) and performs cross-resource correlation, temporal archaeology, and hypothesis generation.
 
 The result: severity-ranked findings with evidence citations, a reconstructed failure timeline, change correlation, anomaly detection, and an interactive Q&A interface.
+
+### Why not just use Troubleshoot.sh?
+
+Troubleshoot.sh is a **data collector** — it gathers cluster state into a tar.gz. Its built-in analyzers are basic rule-based checks that you write yourself, one by one.
+
+TroubleShootAI is the **diagnostics engine** — it reads that same tar.gz and automatically finds every failure, correlates root causes across resources, reconstructs timelines, and generates actionable fixes.
+
+| | Troubleshoot.sh | TroubleShootAI |
+|---|---|---|
+| Data collection | Yes | Uses Troubleshoot bundles |
+| Auto-detection | Only what you manually configure | 24 scanners, 20+ issue types, zero config |
+| Root cause analysis | No | AI-powered cross-resource correlation |
+| Timeline reconstruction | No | Temporal archaeology from metadata |
+| Fix recommendations | No | Specific kubectl commands and YAML patches |
+| Interactive Q&A | No | Ask follow-up questions with full context |
 
 ## Key Features
 
@@ -77,9 +160,9 @@ Bundle Upload (.tar.gz, up to 500MB+)
 | **Database** | PostgreSQL (async SQLAlchemy) — optional, works without DB |
 | **Auth** | Firebase Authentication |
 | **Real-time** | WebSocket for analysis progress streaming |
-| **Deployment** | Railway (backend) + Railway/Vercel (frontend) |
+| **Deployment** | Railway (backend + frontend) |
 
-## Quick Start
+## Local Development
 
 ### Prerequisites
 - Python 3.11+
@@ -89,10 +172,6 @@ Bundle Upload (.tar.gz, up to 500MB+)
 ### Backend
 
 ```bash
-# Clone and install
-git clone https://github.com/spathak-droid/TroubleShootAI.git
-cd TroubleShootAI
-
 # Create virtual environment
 python3 -m venv venv && source venv/bin/activate
 
@@ -130,7 +209,7 @@ bundle-analyzer serve
 ## Testing
 
 ```bash
-# Run all 280 tests
+# Run all 295 tests
 pip install -e ".[dev]"
 pytest
 
@@ -139,9 +218,23 @@ pytest tests/test_triage.py          # Triage scanners
 pytest tests/test_security.py        # Data scrubbing
 pytest tests/test_ai_pipeline.py     # AI orchestration
 pytest tests/test_integration.py     # End-to-end pipeline
+pytest tests/test_e2e_pipeline.py    # Full multi-failure scenarios
 
 # Frontend linting
 cd frontend && npm run lint
+```
+
+## Live Test (Generate a Real Bundle)
+
+```bash
+# Full run: create Kind cluster + deploy 8 failure scenarios + collect + analyze
+./scripts/live_test/run.sh
+
+# Reuse existing cluster
+./scripts/live_test/run.sh --skip-cluster
+
+# Clean up
+./scripts/live_test/run.sh --cleanup
 ```
 
 ## Security Model
@@ -179,11 +272,8 @@ TroubleShootAI/
 │   ├── security/            # 7-layer data protection
 │   └── triage/              # 24 parallel scanners
 ├── frontend/                # Next.js 16 React app
-│   └── src/app/
-│       ├── analysis/[id]/   # Analysis dashboard (5 views)
-│       ├── login/           # Firebase auth
-│       └── about/           # Product overview
-├── tests/                   # 280 pytest tests
+├── scripts/live_test/       # Kind cluster + broken workloads for testing
+├── tests/                   # 295 pytest tests
 │   └── fixtures/            # Sample bundle data
 └── docs/                    # Documentation
 ```
@@ -195,11 +285,13 @@ TroubleShootAI/
 | `POST` | `/api/v1/bundles/upload` | Upload bundle (streaming) |
 | `GET` | `/api/v1/bundles` | List bundles |
 | `POST` | `/api/v1/bundles/{id}/analyze` | Start analysis |
-| `GET` | `/api/v1/bundles/{id}/analysis` | Get analysis status |
+| `GET` | `/api/v1/bundles/{id}/analysis` | Get full analysis |
 | `GET` | `/api/v1/bundles/{id}/triage` | Get triage results |
 | `GET` | `/api/v1/bundles/{id}/findings` | Get AI findings |
-| `POST` | `/api/v1/bundles/{id}/interview` | Interactive Q&A |
-| `WS` | `/api/v1/bundles/{id}/ws` | Real-time progress |
+| `POST` | `/api/v1/bundles/{id}/evaluate` | Run deterministic validation |
+| `POST` | `/api/v1/bundles/{id}/interview` | Start interactive Q&A |
+| `POST` | `/api/v1/bundles/{id}/interview/{sid}/ask/stream` | Stream AI answers (SSE) |
+| `WS` | `/ws/{id}/progress` | Real-time progress updates |
 | `GET` | `/api/v1/health` | Health check |
 
 ## License

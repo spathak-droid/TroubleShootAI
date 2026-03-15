@@ -43,7 +43,7 @@ export default function AnalysisLayout({
       icon: <ShieldCheck size={18} />,
     },
     {
-      label: "Troubleshoot",
+      label: "Troubleshoot Findings",
       href: `${basePath}/troubleshoot`,
       icon: <Wrench size={18} />,
     },

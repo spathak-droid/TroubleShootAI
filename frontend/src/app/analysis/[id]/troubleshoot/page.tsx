@@ -160,7 +160,7 @@ export default function TroubleshootPage({
           className="text-lg font-semibold mr-auto"
           style={{ color: "var(--foreground-bright)" }}
         >
-          Troubleshoot
+          Troubleshoot Findings
         </h1>
         <div className="filter-pill">
           <Wrench size={12} />
@@ -196,7 +196,7 @@ export default function TroubleshootPage({
             <CheckCircle size={24} style={{ color: "var(--success)" }} />
           </div>
           <h2 className="text-base font-semibold mb-1" style={{ color: "var(--foreground-bright)" }}>
-            No Troubleshoot Results
+            No Troubleshoot Findings
           </h2>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             This bundle does not contain troubleshoot.sh analyzer or preflight data.

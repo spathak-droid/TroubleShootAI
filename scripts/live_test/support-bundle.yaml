@@ -1,0 +1,57 @@
+# Troubleshoot support bundle spec — collects everything our analyzer needs
+apiVersion: troubleshoot.sh/v1beta2
+kind: SupportBundle
+metadata:
+  name: troubleshoot-live-test
+spec:
+  collectors:
+    # Cluster-wide resources
+    - clusterResources: {}
+
+    # Pod logs (current + previous for crash analysis)
+    - logs:
+        name: pod-logs
+        selector: []
+        limits:
+          maxLines: 500
+          maxAge: 1h
+
+    # Previous logs (pre-crash)
+    - logs:
+        name: previous-logs
+        selector: []
+        limits:
+          maxLines: 500
+        containerNames: []
+
+    # Node metrics
+    - exec:
+        name: node-top
+        collectorName: node-top
+        selector:
+          - app=healthy-control
+        command: ["kubectl", "top", "nodes"]
+        timeout: 10s
+
+    # Cluster events
+    - clusterResources: {}
+
+  analyzers:
+    # Basic K8s analyzers
+    - deploymentStatus:
+        name: api-crashloop-deploy
+        outcomes:
+          - fail:
+              when: "< 1"
+              message: "api-crashloop deployment has no ready replicas"
+          - pass:
+              message: "api-crashloop deployment is healthy"
+
+    - nodeResources:
+        checkName: node-resources
+        outcomes:
+          - fail:
+              when: "count() < 2"
+              message: "Cluster has fewer than 2 nodes"
+          - pass:
+              message: "Cluster has sufficient nodes"
