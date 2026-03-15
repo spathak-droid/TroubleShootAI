@@ -8,7 +8,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from bundle_analyzer.models.triage import ConfigIssue, PodIssue
+from bundle_analyzer.models.triage import (
+    ConfigIssue,
+    DNSIssue,
+    NetworkPolicyIssue,
+    PodIssue,
+    TLSIssue,
+)
 from bundle_analyzer.models.troubleshoot import TriageResult
 from bundle_analyzer.rca.rules.base import RCARule, all_pods, build_hypothesis
 
@@ -104,8 +110,7 @@ def _hyp_empty_endpoints(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_dns_cascade(triage: TriageResult) -> list[list[Any]]:
     """Find DNS failures that could cascade to app pods."""
-    from bundle_analyzer.models.triage import DNSIssue
-    dns_issues: list[DNSIssue] = getattr(triage, "dns_issues", [])
+    dns_issues: list[DNSIssue] = triage.dns_issues
     if not dns_issues:
         return []
     failing_pods = [
@@ -146,8 +151,7 @@ def _hyp_dns_cascade(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_tls_blocking(triage: TriageResult) -> list[list[Any]]:
     """Find TLS cert issues that could block connections."""
-    from bundle_analyzer.models.triage import TLSIssue
-    tls_issues: list[TLSIssue] = getattr(triage, "tls_issues", [])
+    tls_issues: list[TLSIssue] = triage.tls_issues
     if not tls_issues:
         return []
     return [[tls_issues]]
@@ -179,8 +183,7 @@ def _hyp_tls_blocking(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_network_isolation(triage: TriageResult) -> list[list[Any]]:
     """Find network policies that may be isolating pods."""
-    from bundle_analyzer.models.triage import NetworkPolicyIssue
-    np_issues: list[NetworkPolicyIssue] = getattr(triage, "network_policy_issues", [])
+    np_issues: list[NetworkPolicyIssue] = triage.network_policy_issues
     deny_all = [np for np in np_issues if np.issue_type in ("deny_all_ingress", "deny_all_egress")]
     if not deny_all:
         return []
@@ -220,7 +223,7 @@ def _hyp_network_isolation(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_config_drift_restart(triage: TriageResult) -> list[list[Any]]:
     """Find config issues coinciding with crash loops."""
-    config_issues: list[ConfigIssue] = getattr(triage, "config_issues", [])
+    config_issues: list[ConfigIssue] = triage.config_issues
     if not config_issues:
         return []
     config_pods = {c.referenced_by for c in config_issues}
@@ -268,11 +271,9 @@ def _hyp_config_drift_restart(groups: list[list[Any]]) -> dict[str, Any]:
 
 # ── Exported rules ────────────────────────────────────────────────────────
 
-DEPENDENCY_RULES: list[RCARule] = [
-    RCARule(name="dependency_connection_refused", match=_match_dependency_refused, hypothesis_template=_hyp_dependency_refused),
-    RCARule(name="empty_endpoints", match=_match_empty_endpoints, hypothesis_template=_hyp_empty_endpoints),
-    RCARule(name="dns_cascade", match=_match_dns_cascade, hypothesis_template=_hyp_dns_cascade),
-    RCARule(name="tls_blocking", match=_match_tls_blocking, hypothesis_template=_hyp_tls_blocking),
-    RCARule(name="network_isolation", match=_match_network_isolation, hypothesis_template=_hyp_network_isolation),
-    RCARule(name="config_drift_restart", match=_match_config_drift_restart, hypothesis_template=_hyp_config_drift_restart),
-]
+DEPENDENCY_REFUSED_RULE = RCARule(name="dependency_connection_refused", match=_match_dependency_refused, hypothesis_template=_hyp_dependency_refused)
+EMPTY_ENDPOINTS_RULE = RCARule(name="empty_endpoints", match=_match_empty_endpoints, hypothesis_template=_hyp_empty_endpoints)
+DNS_CASCADE_RULE = RCARule(name="dns_cascade", match=_match_dns_cascade, hypothesis_template=_hyp_dns_cascade)
+TLS_BLOCKING_RULE = RCARule(name="tls_blocking", match=_match_tls_blocking, hypothesis_template=_hyp_tls_blocking)
+NETWORK_ISOLATION_RULE = RCARule(name="network_isolation", match=_match_network_isolation, hypothesis_template=_hyp_network_isolation)
+CONFIG_DRIFT_RULE = RCARule(name="config_drift_restart", match=_match_config_drift_restart, hypothesis_template=_hyp_config_drift_restart)

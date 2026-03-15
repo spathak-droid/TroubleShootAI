@@ -6,10 +6,15 @@ Rules: oom_kill, insufficient_cpu, taint_not_tolerated, node_issue,
 
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Any
 
-from bundle_analyzer.models.triage import NodeIssue, PodIssue, SchedulingIssue, StorageIssue
+from bundle_analyzer.models.triage import (
+    NodeIssue,
+    PodIssue,
+    QuotaIssue,
+    SchedulingIssue,
+    StorageIssue,
+)
 from bundle_analyzer.models.troubleshoot import TriageResult
 from bundle_analyzer.rca.rules.base import RCARule, all_pods, build_hypothesis
 
@@ -54,7 +59,7 @@ def _hyp_oom(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_insufficient_cpu(triage: TriageResult) -> list[list[Any]]:
     """Find pods pending due to insufficient CPU."""
-    scheduling: list[SchedulingIssue] = getattr(triage, "scheduling_issues", [])
+    scheduling: list[SchedulingIssue] = triage.scheduling_issues
     hits = [s for s in scheduling if s.issue_type == "insufficient_cpu"]
     pod_hits = [
         p for p in all_pods(triage)
@@ -98,7 +103,7 @@ def _hyp_insufficient_cpu(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_taint(triage: TriageResult) -> list[list[Any]]:
     """Find pods unschedulable due to taints."""
-    scheduling: list[SchedulingIssue] = getattr(triage, "scheduling_issues", [])
+    scheduling: list[SchedulingIssue] = triage.scheduling_issues
     hits = [s for s in scheduling if s.issue_type == "taint_not_tolerated"]
     pod_hits = [
         p for p in all_pods(triage)
@@ -139,19 +144,10 @@ def _hyp_taint(groups: list[list[Any]]) -> dict[str, Any]:
 # ── Rule 8: Multiple pods on same node failing -> Node Issue ─────────────
 
 def _match_node_issue(triage: TriageResult) -> list[list[Any]]:
-    """Find cases where multiple failing pods share a troubled node."""
+    """Find cases where nodes report unhealthy conditions."""
     if not triage.node_issues:
         return []
-
-    by_node: dict[str, list[NodeIssue]] = defaultdict(list)
-    for ni in triage.node_issues:
-        by_node[ni.node_name].append(ni)
-
-    groups: list[list[Any]] = []
-    for _node_name, issues in by_node.items():
-        groups.append(issues)
-
-    return groups if groups else []
+    return [list(triage.node_issues)]
 
 
 def _hyp_node_issue(groups: list[list[Any]]) -> dict[str, Any]:
@@ -186,7 +182,7 @@ def _hyp_node_issue(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_storage_cascade(triage: TriageResult) -> list[list[Any]]:
     """Find storage issues that cause pods to be stuck."""
-    storage_issues: list[StorageIssue] = getattr(triage, "storage_issues", [])
+    storage_issues: list[StorageIssue] = triage.storage_issues
     if not storage_issues:
         return []
     pending_pods = [p for p in all_pods(triage) if p.issue_type in ("Pending", "FailedMount")]
@@ -221,8 +217,7 @@ def _hyp_storage_cascade(groups: list[list[Any]]) -> dict[str, Any]:
 
 def _match_quota_scheduling(triage: TriageResult) -> list[list[Any]]:
     """Find quota limits causing scheduling failures."""
-    from bundle_analyzer.models.triage import QuotaIssue
-    quota_issues: list[QuotaIssue] = getattr(triage, "quota_issues", [])
+    quota_issues: list[QuotaIssue] = triage.quota_issues
     exceeded = [q for q in quota_issues if q.issue_type in ("quota_exceeded", "quota_near_limit")]
     if not exceeded:
         return []
@@ -256,11 +251,9 @@ def _hyp_quota_scheduling(groups: list[list[Any]]) -> dict[str, Any]:
 
 # ── Exported rules ────────────────────────────────────────────────────────
 
-RESOURCE_RULES: list[RCARule] = [
-    RCARule(name="oom_kill", match=_match_oom, hypothesis_template=_hyp_oom),
-    RCARule(name="insufficient_cpu", match=_match_insufficient_cpu, hypothesis_template=_hyp_insufficient_cpu),
-    RCARule(name="taint_not_tolerated", match=_match_taint, hypothesis_template=_hyp_taint),
-    RCARule(name="node_issue", match=_match_node_issue, hypothesis_template=_hyp_node_issue),
-    RCARule(name="storage_cascade", match=_match_storage_cascade, hypothesis_template=_hyp_storage_cascade),
-    RCARule(name="quota_scheduling", match=_match_quota_scheduling, hypothesis_template=_hyp_quota_scheduling),
-]
+OOM_KILL_RULE = RCARule(name="oom_kill", match=_match_oom, hypothesis_template=_hyp_oom)
+INSUFFICIENT_CPU_RULE = RCARule(name="insufficient_cpu", match=_match_insufficient_cpu, hypothesis_template=_hyp_insufficient_cpu)
+TAINT_RULE = RCARule(name="taint_not_tolerated", match=_match_taint, hypothesis_template=_hyp_taint)
+NODE_ISSUE_RULE = RCARule(name="node_issue", match=_match_node_issue, hypothesis_template=_hyp_node_issue)
+STORAGE_CASCADE_RULE = RCARule(name="storage_cascade", match=_match_storage_cascade, hypothesis_template=_hyp_storage_cascade)
+QUOTA_SCHEDULING_RULE = RCARule(name="quota_scheduling", match=_match_quota_scheduling, hypothesis_template=_hyp_quota_scheduling)

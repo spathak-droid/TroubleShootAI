@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from bundle_analyzer.bundle.indexer import BundleIndex
-from bundle_analyzer.models import AnalysisResult, TriageResult
+from bundle_analyzer.models import AnalysisResult
 from bundle_analyzer.triage.engine import TriageEngine
 from tests.fixtures.e2e_bundle_builder import build_test_bundle
 

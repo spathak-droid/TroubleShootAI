@@ -11,29 +11,45 @@ Rules are organized by domain:
 """
 
 from bundle_analyzer.rca.rules.base import RCARule
-from bundle_analyzer.rca.rules.deployment_rules import DEPLOYMENT_RULES
-from bundle_analyzer.rca.rules.dependency_rules import DEPENDENCY_RULES
-from bundle_analyzer.rca.rules.resource_rules import RESOURCE_RULES
+from bundle_analyzer.rca.rules.deployment_rules import (
+    DEPLOYMENT_WIDE_RULE,
+    IMAGE_NOT_FOUND_RULE,
+    REGISTRY_AUTH_RULE,
+)
+from bundle_analyzer.rca.rules.dependency_rules import (
+    CONFIG_DRIFT_RULE,
+    DEPENDENCY_REFUSED_RULE,
+    DNS_CASCADE_RULE,
+    EMPTY_ENDPOINTS_RULE,
+    NETWORK_ISOLATION_RULE,
+    TLS_BLOCKING_RULE,
+)
+from bundle_analyzer.rca.rules.resource_rules import (
+    INSUFFICIENT_CPU_RULE,
+    NODE_ISSUE_RULE,
+    OOM_KILL_RULE,
+    QUOTA_SCHEDULING_RULE,
+    STORAGE_CASCADE_RULE,
+    TAINT_RULE,
+)
 
 # Exported rule list — evaluated in order by HypothesisEngine.
-# Order: OOM → dependency → CPU → taint → image → registry → endpoints →
-#         node → deployment-wide → DNS → TLS → storage → quota → network → config
 RCA_RULES: list[RCARule] = [
-    RESOURCE_RULES[0],      # oom_kill
-    DEPENDENCY_RULES[0],    # dependency_connection_refused
-    RESOURCE_RULES[1],      # insufficient_cpu
-    RESOURCE_RULES[2],      # taint_not_tolerated
-    DEPLOYMENT_RULES[0],    # image_not_found
-    DEPLOYMENT_RULES[1],    # registry_auth_failure
-    DEPENDENCY_RULES[1],    # empty_endpoints
-    RESOURCE_RULES[3],      # node_issue
-    DEPLOYMENT_RULES[2],    # deployment_wide_failure
-    DEPENDENCY_RULES[2],    # dns_cascade
-    DEPENDENCY_RULES[3],    # tls_blocking
-    RESOURCE_RULES[4],      # storage_cascade
-    RESOURCE_RULES[5],      # quota_scheduling
-    DEPENDENCY_RULES[4],    # network_isolation
-    DEPENDENCY_RULES[5],    # config_drift_restart
+    OOM_KILL_RULE,
+    DEPENDENCY_REFUSED_RULE,
+    INSUFFICIENT_CPU_RULE,
+    TAINT_RULE,
+    IMAGE_NOT_FOUND_RULE,
+    REGISTRY_AUTH_RULE,
+    EMPTY_ENDPOINTS_RULE,
+    NODE_ISSUE_RULE,
+    DEPLOYMENT_WIDE_RULE,
+    DNS_CASCADE_RULE,
+    TLS_BLOCKING_RULE,
+    STORAGE_CASCADE_RULE,
+    QUOTA_SCHEDULING_RULE,
+    NETWORK_ISOLATION_RULE,
+    CONFIG_DRIFT_RULE,
 ]
 
 __all__ = ["RCA_RULES", "RCARule"]

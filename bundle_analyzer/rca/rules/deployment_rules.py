@@ -13,6 +13,15 @@ from bundle_analyzer.models.troubleshoot import TriageResult
 from bundle_analyzer.rca.rules.base import RCARule, all_pods, build_hypothesis
 
 
+def _deployment_prefix(pod_name: str) -> str:
+    """Extract likely deployment name from a K8s pod name.
+
+    Kubernetes pod names follow: <deployment>-<replicaset-hash>-<pod-hash>.
+    """
+    parts = pod_name.rsplit("-", 2)
+    return parts[0] if len(parts) >= 3 else pod_name
+
+
 # ── Rule 5: ImagePullBackOff + not found -> Wrong Image Tag ──────────────
 
 def _match_image_not_found(triage: TriageResult) -> list[list[Any]]:
@@ -88,9 +97,7 @@ def _match_deployment_wide(triage: TriageResult) -> list[list[Any]]:
     """Find deployments where all pods exhibit the same failure."""
     by_prefix: dict[str, list[PodIssue]] = defaultdict(list)
     for pod in all_pods(triage):
-        parts = pod.pod_name.rsplit("-", 2)
-        prefix = parts[0] if len(parts) >= 3 else pod.pod_name
-        key = f"{pod.namespace}/{prefix}"
+        key = f"{pod.namespace}/{_deployment_prefix(pod.pod_name)}"
         by_prefix[key].append(pod)
 
     groups: list[list[Any]] = []
@@ -111,9 +118,7 @@ def _hyp_deployment_wide(groups: list[list[Any]]) -> dict[str, Any]:
 
     deploy_names: set[str] = set()
     for pod in all_pods_list:
-        parts = pod.pod_name.rsplit("-", 2)
-        prefix = parts[0] if len(parts) >= 3 else pod.pod_name
-        deploy_names.add(f"{pod.namespace}/{prefix}")
+        deploy_names.add(f"{pod.namespace}/{_deployment_prefix(pod.pod_name)}")
 
     issue_type = all_pods_list[0].issue_type if all_pods_list else "unknown"
     return build_hypothesis(
@@ -141,8 +146,6 @@ def _hyp_deployment_wide(groups: list[list[Any]]) -> dict[str, Any]:
 
 # ── Exported rules ────────────────────────────────────────────────────────
 
-DEPLOYMENT_RULES: list[RCARule] = [
-    RCARule(name="image_not_found", match=_match_image_not_found, hypothesis_template=_hyp_image_not_found),
-    RCARule(name="registry_auth_failure", match=_match_registry_auth, hypothesis_template=_hyp_registry_auth),
-    RCARule(name="deployment_wide_failure", match=_match_deployment_wide, hypothesis_template=_hyp_deployment_wide),
-]
+IMAGE_NOT_FOUND_RULE = RCARule(name="image_not_found", match=_match_image_not_found, hypothesis_template=_hyp_image_not_found)
+REGISTRY_AUTH_RULE = RCARule(name="registry_auth_failure", match=_match_registry_auth, hypothesis_template=_hyp_registry_auth)
+DEPLOYMENT_WIDE_RULE = RCARule(name="deployment_wide_failure", match=_match_deployment_wide, hypothesis_template=_hyp_deployment_wide)
