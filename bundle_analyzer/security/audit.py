@@ -8,7 +8,7 @@ only metadata about what was redacted, by which detector, and when.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,7 @@ class AuditLogger:
         """
         self.audit_path = audit_path
         self.entries: list[dict[str, Any]] = []
-        self._session_start = datetime.now(timezone.utc)
+        self._session_start = datetime.now(UTC)
 
     def log_redaction(self, entry: RedactionEntry, context: str = "") -> None:
         """Record a single redaction event.
@@ -50,7 +50,7 @@ class AuditLogger:
         """
         event = {
             "type": "redaction",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "pattern_name": entry.pattern_name,
             "detector": entry.detector,
             "category": entry.category,
@@ -70,7 +70,7 @@ class AuditLogger:
         """
         event = {
             "type": "prompt_injection",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "injection_type": detection.get("name", "unknown"),
             "severity": detection.get("severity", "unknown"),
             "source": source,
@@ -94,7 +94,7 @@ class AuditLogger:
         """
         event = {
             "type": "sanitization_report",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "total_redactions": report.total_redactions,
             "by_category": report.redactions_by_category,
             "by_detector": report.redactions_by_detector,
@@ -146,7 +146,7 @@ class AuditLogger:
         """
         export = {
             "session_start": self._session_start.isoformat(),
-            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "exported_at": datetime.now(UTC).isoformat(),
             "total_events": len(self.entries),
             "events": self.entries,
         }

@@ -47,7 +47,7 @@ export default function TroubleshootPage({
     queryKey: ["analysis", bundleId],
     queryFn: () => getAnalysis(bundleId!),
     enabled: !!bundleId,
-    retry: false,
+    retry: 2,
   });
 
   if (!bundleId) return null;
@@ -76,7 +76,7 @@ export default function TroubleshootPage({
             Analysis Not Available
           </h2>
           <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
-            This bundle&apos;s analysis data is no longer in memory. Please go back and re-run the analysis.
+            Could not load analysis data. The analysis may still be in progress, or you can re-upload the bundle to run a fresh analysis.
           </p>
           <Link
             href="/"

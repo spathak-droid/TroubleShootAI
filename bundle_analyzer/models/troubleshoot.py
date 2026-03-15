@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from .log_intelligence import CrashLoopContext, PodLogIntelligence
+from .log_intelligence import CrashLoopContext
 from .triage import (
     ConfigIssue,
     DeploymentIssue,

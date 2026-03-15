@@ -25,7 +25,7 @@ class DriftScanner:
     - ConfigMap key references vs actual keys
     """
 
-    async def scan(self, index: "BundleIndex") -> list[DriftIssue]:
+    async def scan(self, index: BundleIndex) -> list[DriftIssue]:
         """Scan all supported resource types for drift.
 
         Args:
@@ -47,7 +47,7 @@ class DriftScanner:
         return issues
 
     def _read_resources(
-        self, index: "BundleIndex", namespace: str, resource_type: str,
+        self, index: BundleIndex, namespace: str, resource_type: str,
     ) -> list[dict]:
         """Read a list of resources from the bundle."""
         try:
@@ -65,7 +65,7 @@ class DriftScanner:
             logger.debug("Could not read {} for {}: {}", resource_type, namespace, exc)
             return []
 
-    def _check_deployments(self, index: "BundleIndex", namespace: str) -> list[DriftIssue]:
+    def _check_deployments(self, index: BundleIndex, namespace: str) -> list[DriftIssue]:
         """Check deployments for replica drift."""
         issues: list[DriftIssue] = []
         deployments = self._read_resources(index, namespace, "deployments")
@@ -79,7 +79,7 @@ class DriftScanner:
                 desired = spec.get("replicas", 1)
                 ready = status.get("readyReplicas") or 0
                 updated = status.get("updatedReplicas") or 0
-                available = status.get("availableReplicas") or 0
+                status.get("availableReplicas") or 0
 
                 source = f"cluster-resources/deployments/{namespace}.json"
 
@@ -113,7 +113,7 @@ class DriftScanner:
 
         return issues
 
-    def _check_statefulsets(self, index: "BundleIndex", namespace: str) -> list[DriftIssue]:
+    def _check_statefulsets(self, index: BundleIndex, namespace: str) -> list[DriftIssue]:
         """Check statefulsets for replica drift."""
         issues: list[DriftIssue] = []
         statefulsets = self._read_resources(index, namespace, "statefulsets")
@@ -144,7 +144,7 @@ class DriftScanner:
 
         return issues
 
-    def _check_services(self, index: "BundleIndex", namespace: str) -> list[DriftIssue]:
+    def _check_services(self, index: BundleIndex, namespace: str) -> list[DriftIssue]:
         """Check services for selector drift (selector matching 0 pods)."""
         issues: list[DriftIssue] = []
 
@@ -191,7 +191,7 @@ class DriftScanner:
 
         return issues
 
-    def _collect_pod_labels(self, index: "BundleIndex", namespace: str) -> list[dict[str, str]]:
+    def _collect_pod_labels(self, index: BundleIndex, namespace: str) -> list[dict[str, str]]:
         """Collect labels from all pods in a namespace."""
         labels_list: list[dict[str, str]] = []
         try:

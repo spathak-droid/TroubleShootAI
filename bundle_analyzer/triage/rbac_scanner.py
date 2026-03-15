@@ -8,7 +8,6 @@ full data collection or indicate cluster access control issues.
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -86,7 +85,7 @@ class RBACScanner:
     - RBAC errors from the bundle index
     """
 
-    async def scan(self, index: "BundleIndex") -> list[RBACIssue]:
+    async def scan(self, index: BundleIndex) -> list[RBACIssue]:
         """Scan for RBAC and permission issues.
 
         Args:
@@ -105,7 +104,7 @@ class RBACScanner:
         return issues
 
     def _scan_auth_cani_list(
-        self, index: "BundleIndex", issues: list[RBACIssue],
+        self, index: BundleIndex, issues: list[RBACIssue],
     ) -> None:
         """Parse auth-cani-list files for denied permissions.
 
@@ -199,7 +198,7 @@ class RBACScanner:
                                 ))
 
     def _scan_error_files(
-        self, index: "BundleIndex", issues: list[RBACIssue],
+        self, index: BundleIndex, issues: list[RBACIssue],
     ) -> None:
         """Scan *-errors.json files in cluster-resources for collection failures.
 
@@ -241,7 +240,7 @@ class RBACScanner:
                 elif isinstance(entry, dict):
                     errors.append(entry.get("error", entry.get("message", str(entry))))
         elif isinstance(data, dict):
-            for key, value in data.items():
+            for _key, value in data.items():
                 if isinstance(value, str):
                     errors.append(value)
                 elif isinstance(value, list):
@@ -276,7 +275,7 @@ class RBACScanner:
             ))
 
     def _scan_index_rbac_errors(
-        self, index: "BundleIndex", issues: list[RBACIssue],
+        self, index: BundleIndex, issues: list[RBACIssue],
     ) -> None:
         """Process RBAC errors already collected by the bundle index.
 

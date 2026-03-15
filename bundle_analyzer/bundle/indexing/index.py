@@ -47,7 +47,7 @@ class BundleIndex:
     # ------------------------------------------------------------------
 
     @classmethod
-    async def build(cls, root: Path) -> "BundleIndex":
+    async def build(cls, root: Path) -> BundleIndex:
         """Scan an extracted bundle directory and build the index.
 
         Args:
@@ -59,7 +59,7 @@ class BundleIndex:
         return await factory.build(cls, root)
 
     @classmethod
-    def _build_sync(cls, root: Path) -> "BundleIndex":
+    def _build_sync(cls, root: Path) -> BundleIndex:
         """Blocking helper that walks the filesystem."""
         return factory.build_sync(cls, root)
 

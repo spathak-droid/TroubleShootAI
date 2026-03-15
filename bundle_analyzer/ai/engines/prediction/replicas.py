@@ -6,8 +6,6 @@ by checking ready vs desired counts and degradation trends.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import PredictedFailure
 
@@ -35,7 +33,6 @@ def predict_replica_exhaustion(
     for ns_dir in sorted(deployments_dir.iterdir()):
         if not ns_dir.is_dir():
             continue
-        namespace = ns_dir.name
 
         for deploy_file in sorted(ns_dir.glob("*.json")):
             rel = str(deploy_file.relative_to(index.root))
@@ -63,7 +60,7 @@ def predict_replica_exhaustion(
 
 def predict_replica_exhaustion_single(
     deployment_json: dict,
-) -> Optional[PredictedFailure]:
+) -> PredictedFailure | None:
     """Predict replica exhaustion for a single deployment.
 
     Args:
@@ -80,7 +77,7 @@ def predict_replica_exhaustion_single(
 
     desired = spec.get("replicas", 0)
     ready = status.get("readyReplicas", 0) or 0
-    available = status.get("availableReplicas", 0) or 0
+    status.get("availableReplicas", 0) or 0
     unavailable = status.get("unavailableReplicas", 0) or 0
 
     if desired == 0:

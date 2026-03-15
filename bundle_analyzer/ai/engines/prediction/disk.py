@@ -6,8 +6,6 @@ storage, and optional metrics-based trend extrapolation.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import PredictedFailure
 
@@ -92,7 +90,7 @@ def predict_disk_full(index: BundleIndex) -> list[PredictedFailure]:
 
 def predict_disk_full_single(
     node_json: dict, metrics: dict | None = None
-) -> Optional[PredictedFailure]:
+) -> PredictedFailure | None:
     """Extrapolate disk usage trend for a single node.
 
     Args:

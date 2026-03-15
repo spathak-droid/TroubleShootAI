@@ -141,7 +141,7 @@ def build_intelligent_log_prompt(
     exit_code: int | None,
     termination_reason: str,
     restart_count: int,
-    intelligence: "LogIntelligence",
+    intelligence: LogIntelligence,
     related_events: str | None = None,
 ) -> str:
     """Build an AI prompt using pre-digested LogIntelligence instead of raw logs.

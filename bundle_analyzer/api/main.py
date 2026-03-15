@@ -8,9 +8,9 @@ context manager for startup/shutdown cleanup.
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncIterator
 
 from dotenv import load_dotenv
 
@@ -22,7 +22,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-
 from loguru import logger
 
 from bundle_analyzer.api.routes import (

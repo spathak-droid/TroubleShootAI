@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from bundle_analyzer.bundle.indexer import BundleIndex
 
 
-def read_nodes(index: "BundleIndex") -> list[dict]:
+def read_nodes(index: BundleIndex) -> list[dict]:
     """Return all node objects from the bundle.
 
     Looks for ``cluster-resources/nodes.json`` (list format) and
@@ -55,7 +55,7 @@ def read_nodes(index: "BundleIndex") -> list[dict]:
     return nodes
 
 
-def read_deployments(index: "BundleIndex", namespace: str) -> list[dict]:
+def read_deployments(index: BundleIndex, namespace: str) -> list[dict]:
     """Return all Deployment objects for a given namespace.
 
     Args:
@@ -97,7 +97,7 @@ def read_deployments(index: "BundleIndex", namespace: str) -> list[dict]:
     return results
 
 
-def read_configmaps(index: "BundleIndex", namespace: str) -> list[dict]:
+def read_configmaps(index: BundleIndex, namespace: str) -> list[dict]:
     """Return all ConfigMap objects for a given namespace.
 
     Args:
@@ -139,7 +139,7 @@ def read_configmaps(index: "BundleIndex", namespace: str) -> list[dict]:
 
 
 def read_pod_spec(
-    index: "BundleIndex", namespace: str, pod: str
+    index: BundleIndex, namespace: str, pod: str
 ) -> dict | None:
     """Return the full pod object for a specific pod.
 

@@ -45,7 +45,7 @@ class ChangeCorrelator:
         self._lookback_minutes = lookback_minutes
 
     async def scan(
-        self, index: "BundleIndex", triage: "TriageResult"
+        self, index: BundleIndex, triage: TriageResult
     ) -> ChangeReport:
         """Run the full change-correlation analysis.
 

@@ -6,8 +6,6 @@ to analyze broken dependency chains and network configurations.
 
 from __future__ import annotations
 
-from typing import Optional
-
 CONFIG_SYSTEM_PROMPT = """\
 You are a Kubernetes configuration forensics expert analyzing a support bundle — forensic \
 evidence from a cluster you cannot access directly. Your focus is dependency chains, \
@@ -52,15 +50,15 @@ Respond in this exact JSON format:
 
 
 def build_config_user_prompt(
-    config_findings: Optional[str] = None,
-    drift_findings: Optional[str] = None,
-    services: Optional[str] = None,
-    endpoint_slices: Optional[str] = None,
-    ingress_resources: Optional[str] = None,
-    config_maps: Optional[str] = None,
-    secrets: Optional[str] = None,
-    network_policies: Optional[str] = None,
-    rbac_errors: Optional[str] = None,
+    config_findings: str | None = None,
+    drift_findings: str | None = None,
+    services: str | None = None,
+    endpoint_slices: str | None = None,
+    ingress_resources: str | None = None,
+    config_maps: str | None = None,
+    secrets: str | None = None,
+    network_policies: str | None = None,
+    rbac_errors: str | None = None,
 ) -> str:
     """Build a structured context block for the config analyst.
 

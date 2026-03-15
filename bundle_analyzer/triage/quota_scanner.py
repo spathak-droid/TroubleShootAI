@@ -7,7 +7,6 @@ and namespaces with pods but no quotas defined.
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -66,7 +65,7 @@ class QuotaScanner:
     limit range conflicts, and namespaces running pods without quotas.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[QuotaIssue]:
+    async def scan(self, index: BundleIndex) -> list[QuotaIssue]:
         """Scan all resource quotas and limit ranges for issues.
 
         Args:
@@ -85,7 +84,7 @@ class QuotaScanner:
         return issues
 
     def _scan_resource_quotas(
-        self, index: "BundleIndex", issues: list[QuotaIssue],
+        self, index: BundleIndex, issues: list[QuotaIssue],
     ) -> None:
         """Parse resource quota files and check usage against limits.
 
@@ -203,7 +202,7 @@ class QuotaScanner:
                     ))
 
     def _scan_limit_ranges(
-        self, index: "BundleIndex", issues: list[QuotaIssue],
+        self, index: BundleIndex, issues: list[QuotaIssue],
     ) -> None:
         """Parse limit range files and check for conflicts.
 
@@ -332,7 +331,7 @@ class QuotaScanner:
                             continue
 
     def _check_namespaces_without_quotas(
-        self, index: "BundleIndex", issues: list[QuotaIssue],
+        self, index: BundleIndex, issues: list[QuotaIssue],
     ) -> None:
         """Flag namespaces that have pods but no resource quotas.
 

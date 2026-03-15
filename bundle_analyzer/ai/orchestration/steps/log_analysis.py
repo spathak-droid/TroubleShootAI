@@ -49,7 +49,7 @@ async def run_log_analysis(
             len(triage.crash_contexts),
         )
         return diagnoses
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("Log analysis timed out after {}s", LOG_ANALYSIS_TIMEOUT)
         return []
     except (ImportError, AttributeError) as exc:

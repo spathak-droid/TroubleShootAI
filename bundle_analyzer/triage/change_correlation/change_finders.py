@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def find_recent_deployments(
-    index: "BundleIndex", before: datetime, window_minutes: int
+    index: BundleIndex, before: datetime, window_minutes: int
 ) -> list[ChangeEvent]:
     """Find deployments created or updated within the lookback window.
 
@@ -129,7 +129,7 @@ def check_deployment(
 
 
 def find_recent_config_changes(
-    index: "BundleIndex", before: datetime, window_minutes: int
+    index: BundleIndex, before: datetime, window_minutes: int
 ) -> list[ChangeEvent]:
     """Find ConfigMaps and Secrets created/modified within the window.
 
@@ -222,7 +222,7 @@ def check_config_resource(
 
 
 def find_scaling_events(
-    index: "BundleIndex", before: datetime, window_minutes: int
+    index: BundleIndex, before: datetime, window_minutes: int
 ) -> list[ChangeEvent]:
     """Find scaling and deployment-related events within the window.
 
@@ -302,7 +302,7 @@ def find_scaling_events(
 
 
 def find_node_changes(
-    index: "BundleIndex", before: datetime, window_minutes: int
+    index: BundleIndex, before: datetime, window_minutes: int
 ) -> list[ChangeEvent]:
     """Find nodes created or with recently changed conditions.
 
@@ -405,7 +405,7 @@ def check_node(
 
 
 def find_rollout_events(
-    index: "BundleIndex", before: datetime, window_minutes: int
+    index: BundleIndex, before: datetime, window_minutes: int
 ) -> list[ChangeEvent]:
     """Detect rollouts by finding multiple ReplicaSets for the same deployment.
 

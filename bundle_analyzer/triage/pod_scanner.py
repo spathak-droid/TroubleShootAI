@@ -6,7 +6,7 @@ to produce findings without requiring AI analysis.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -52,7 +52,7 @@ class PodScanner:
 
     async def scan(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         collection_time: datetime | None = None,
     ) -> list[PodIssue]:
         """Scan all pods and return detected issues.
@@ -73,7 +73,7 @@ class PodScanner:
             if hasattr(index, "metadata") and index.metadata and index.metadata.collected_at:
                 collection_time = index.metadata.collected_at
             else:
-                collection_time = datetime.now(timezone.utc)
+                collection_time = datetime.now(UTC)
                 logger.debug("No collection_time available — falling back to wall clock")
         self._collection_time = collection_time
 
@@ -94,7 +94,7 @@ class PodScanner:
         logger.info("PodScanner found {} issues across {} pods", len(issues), len(pods))
         return issues
 
-    def _scan_pod(self, pod: dict, index: "BundleIndex") -> list[PodIssue]:
+    def _scan_pod(self, pod: dict, index: BundleIndex) -> list[PodIssue]:
         """Scan a single pod dict and return any issues found."""
         issues: list[PodIssue] = []
         metadata = pod.get("metadata", {})
@@ -157,7 +157,7 @@ class PodScanner:
             else:
                 created = creation_ts
             # Use bundle collection time, NOT wall clock
-            ref_time = getattr(self, "_collection_time", None) or datetime.now(timezone.utc)
+            ref_time = getattr(self, "_collection_time", None) or datetime.now(UTC)
             age_seconds = (ref_time - created).total_seconds()
         except (ValueError, TypeError) as exc:
             logger.debug("Could not parse creationTimestamp for {}/{}: {}", namespace, pod_name, exc)
@@ -192,7 +192,7 @@ class PodScanner:
         cs: dict,
         namespace: str,
         pod_name: str,
-        index: "BundleIndex",
+        index: BundleIndex,
         *,
         is_init: bool,
     ) -> list[PodIssue]:
@@ -285,7 +285,7 @@ class PodScanner:
 
     def _find_log_path(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         pod_name: str,
         container_name: str,

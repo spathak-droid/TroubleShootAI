@@ -23,7 +23,7 @@ class IngressScanner:
     between ingress and target services, and missing TLS secrets.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[IngressIssue]:
+    async def scan(self, index: BundleIndex) -> list[IngressIssue]:
         """Scan all ingresses and return detected issues.
 
         Args:
@@ -47,7 +47,7 @@ class IngressScanner:
         return issues
 
     def _scan_namespace(
-        self, index: "BundleIndex", namespace: str,
+        self, index: BundleIndex, namespace: str,
     ) -> list[IngressIssue]:
         """Scan all ingresses in a single namespace."""
         issues: list[IngressIssue] = []
@@ -201,7 +201,7 @@ class IngressScanner:
         return issues
 
     def _read_resources(
-        self, index: "BundleIndex", namespace: str, resource_type: str,
+        self, index: BundleIndex, namespace: str, resource_type: str,
     ) -> list[dict]:
         """Read a list of resources from the bundle."""
         try:

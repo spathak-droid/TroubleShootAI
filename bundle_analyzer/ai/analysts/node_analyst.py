@@ -17,13 +17,13 @@ from loguru import logger
 from bundle_analyzer.ai.client import BundleAnalyzerClient
 from bundle_analyzer.ai.prompts.node import NODE_SYSTEM_PROMPT, build_node_user_prompt
 from bundle_analyzer.bundle.indexer import BundleIndex
-from bundle_analyzer.security.scrubber import BundleScrubber
 from bundle_analyzer.models import (
     AnalystOutput,
     Evidence,
     Finding,
     Fix,
 )
+from bundle_analyzer.security.scrubber import BundleScrubber
 
 
 class NodeAnalyst:

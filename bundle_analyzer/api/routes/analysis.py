@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException
-
 from loguru import logger
 
 from bundle_analyzer.api.deps import get_session
@@ -292,11 +291,16 @@ async def get_analysis_status(
 
 @router.get("/triage", response_model=TriageResult)
 async def get_triage(
+    bundle_id: str,
     session: BundleSession = Depends(get_session),
 ) -> Any:
     """Return the TriageResult (available before AI analysis completes).
 
+    Falls back to extracting triage from the analysis result in memory,
+    then from the database if needed.
+
     Args:
+        bundle_id: The bundle identifier from the URL path.
         session: The bundle session.
 
     Returns:
@@ -305,13 +309,33 @@ async def get_triage(
     Raises:
         HTTPException: 404 if triage has not completed yet.
     """
-    if session.triage is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Triage not yet complete. "
-            f"Current status: {session.status}",
-        )
-    return scrub_triage_response(session.triage)
+    if session.triage is not None:
+        return scrub_triage_response(session.triage)
+
+    # Try extracting from in-memory analysis
+    if session.analysis is not None and session.analysis.triage is not None:
+        session.triage = session.analysis.triage
+        return scrub_triage_response(session.triage)
+
+    # Try loading from database
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is not None:
+            from bundle_analyzer.db.repository import get_bundle_record
+            async with _session_factory() as db:
+                record = await get_bundle_record(db, bundle_id)
+                if record is not None and record.analysis_json is not None:
+                    triage_data = record.analysis_json.get("triage")
+                    if triage_data is not None:
+                        return scrub_triage_response(triage_data)
+    except Exception as exc:
+        logger.warning("Failed to load triage from DB: {}", exc)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Triage not yet complete. "
+        f"Current status: {session.status}",
+    )
 
 
 # ── Evaluation endpoints ─────────────────────────────────────────
@@ -507,11 +531,15 @@ async def _load_evaluation_from_db(bundle_id: str) -> Any:
 
 @router.get("/hypotheses")
 async def get_hypotheses(
+    bundle_id: str,
     session: BundleSession = Depends(get_session),
 ) -> Any:
     """Return ranked RCA hypotheses for a completed analysis.
 
+    Falls back to database if not in memory.
+
     Args:
+        bundle_id: The bundle identifier from the URL path.
         session: The bundle session.
 
     Returns:
@@ -520,10 +548,23 @@ async def get_hypotheses(
     Raises:
         HTTPException: 404 if analysis has not completed yet.
     """
-    if session.analysis is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Analysis not yet complete. "
-            f"Current status: {session.status}",
-        )
-    return session.analysis.hypotheses
+    if session.analysis is not None:
+        return session.analysis.hypotheses
+
+    # Try loading from database
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is not None:
+            from bundle_analyzer.db.repository import get_bundle_record
+            async with _session_factory() as db:
+                record = await get_bundle_record(db, bundle_id)
+                if record is not None and record.analysis_json is not None:
+                    return record.analysis_json.get("hypotheses", [])
+    except Exception as exc:
+        logger.warning("Failed to load hypotheses from DB: {}", exc)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Analysis not yet complete. "
+        f"Current status: {session.status}",
+    )

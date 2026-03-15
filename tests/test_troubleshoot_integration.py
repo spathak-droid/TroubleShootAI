@@ -24,9 +24,9 @@ from bundle_analyzer.models import (
     NodeIssue,
     PreflightReport,
     StorageIssue,
+    TriageResult,
     TroubleshootAnalysis,
     TroubleshootAnalyzerResult,
-    TriageResult,
 )
 from bundle_analyzer.triage.troubleshoot_scanner import TroubleshootAnalyzerScanner
 
@@ -441,11 +441,8 @@ def test_synthesis_prompt_includes_preflight() -> None:
 def test_models_import() -> None:
     """Verify all new models can be imported."""
     from bundle_analyzer.models import (
-        ExternalAnalyzerIssue,
-        PreflightCheckResult,
         PreflightReport,
         TroubleshootAnalysis,
-        TroubleshootAnalyzerResult,
     )
 
     # Verify defaults

@@ -6,7 +6,6 @@ allocatable capacity to find scheduling and stability risks.
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -71,7 +70,7 @@ class ResourceScanner:
     requests exceeding node capacity, and overcommitted nodes.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[ResourceIssue]:
+    async def scan(self, index: BundleIndex) -> list[ResourceIssue]:
         """Scan all pods and return detected resource issues.
 
         Args:
@@ -159,7 +158,7 @@ class ResourceScanner:
         return issues
 
     def _get_node_capacity(
-        self, index: "BundleIndex",
+        self, index: BundleIndex,
     ) -> dict[str, dict[str, float]]:
         """Parse node allocatable capacity from nodes.json.
 
@@ -227,7 +226,7 @@ class ResourceScanner:
         spec = pod.get("spec", {})
         status = pod.get("status", {})
         qos_class = status.get("qosClass", "")
-        node_name = spec.get("nodeName")
+        spec.get("nodeName")
 
         # BestEffort QoS warning
         if qos_class == "BestEffort":
@@ -243,7 +242,7 @@ class ResourceScanner:
                 resource_type="memory",
                 severity="warning",
                 source_file=source_file,
-                evidence_excerpt=f"status.qosClass=BestEffort",
+                evidence_excerpt="status.qosClass=BestEffort",
             ))
 
         containers = spec.get("containers", [])

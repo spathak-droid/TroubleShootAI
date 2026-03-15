@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-
 from loguru import logger
 
 from bundle_analyzer.api.deps import get_store

@@ -6,15 +6,14 @@ to build a timeline of events that led to the current state.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Literal, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from loguru import logger
 from pydantic import BaseModel, Field
 
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import HistoricalEvent
-
 
 # ── Local models ─────────────────────────────────────────────────────
 
@@ -27,7 +26,7 @@ class TimelineEvent(BaseModel):
     timestamp: datetime
     event_type: str  # "pod_created", "pod_crashed", "node_pressure", etc.
     resource: str
-    namespace: Optional[str] = None
+    namespace: str | None = None
     description: str
     severity: Severity = "info"
 
@@ -36,9 +35,9 @@ class Timeline(BaseModel):
     """Full reconstructed timeline from temporal archaeology."""
 
     events: list[HistoricalEvent] = Field(default_factory=list)
-    cluster_age_days: Optional[int] = None
-    incident_window_start: Optional[datetime] = None
-    incident_window_end: Optional[datetime] = None
+    cluster_age_days: int | None = None
+    incident_window_start: datetime | None = None
+    incident_window_end: datetime | None = None
     quiet_periods: list[tuple[datetime, datetime]] = Field(default_factory=list)
 
 
@@ -125,7 +124,6 @@ class TemporalArchaeologyEngine:
             metadata = pod.get("metadata", {})
             pod_name = metadata.get("name", "unknown")
             namespace = metadata.get("namespace", "unknown")
-            resource = f"pod/{namespace}/{pod_name}"
 
             # Pod creation
             creation_ts = self._parse_ts(metadata.get("creationTimestamp"))
@@ -357,9 +355,9 @@ class TemporalArchaeologyEngine:
 
     # ── Analysis helpers ─────────────────────────────────────────────
 
-    def _estimate_cluster_age(self, index: BundleIndex) -> Optional[int]:
+    def _estimate_cluster_age(self, index: BundleIndex) -> int | None:
         """Estimate cluster age in days from the oldest node creationTimestamp."""
-        oldest: Optional[datetime] = None
+        oldest: datetime | None = None
 
         nodes_dir = index.root / "cluster-resources" / "nodes"
         node_sources: list[dict] = []
@@ -390,14 +388,14 @@ class TemporalArchaeologyEngine:
         if oldest is None:
             return None
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - oldest).days
 
     def _find_incident_window(
         self,
         events: list[HistoricalEvent],
         index: BundleIndex,
-    ) -> tuple[Optional[datetime], Optional[datetime]]:
+    ) -> tuple[datetime | None, datetime | None]:
         """Find the time window where Warning events cluster most densely.
 
         Uses a sliding window approach to find the densest cluster of
@@ -420,8 +418,8 @@ class TemporalArchaeologyEngine:
         window = timedelta(minutes=self.INCIDENT_WINDOW_MINUTES)
 
         best_count = 0
-        best_start: Optional[datetime] = None
-        best_end: Optional[datetime] = None
+        best_start: datetime | None = None
+        best_end: datetime | None = None
 
         for i, start_ts in enumerate(warning_timestamps):
             end_ts = start_ts + window
@@ -467,7 +465,7 @@ class TemporalArchaeologyEngine:
     # ── Parsing helpers ──────────────────────────────────────────────
 
     @staticmethod
-    def _parse_ts(value: str | None) -> Optional[datetime]:
+    def _parse_ts(value: str | None) -> datetime | None:
         """Parse a Kubernetes ISO 8601 timestamp string.
 
         Handles common K8s formats including those with and without timezone info.

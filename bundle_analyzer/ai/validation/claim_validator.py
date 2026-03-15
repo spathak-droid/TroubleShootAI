@@ -8,7 +8,7 @@ Downgrades confidence for unverifiable claims and flags pure hypotheses.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from pydantic import BaseModel, Field

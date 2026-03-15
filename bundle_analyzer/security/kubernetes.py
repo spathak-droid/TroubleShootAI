@@ -135,7 +135,7 @@ class KubernetesStructuralScrubber:
                 if image and not _contains_hidden(image):
                     m = _INTERNAL_REGISTRY_RE.match(image)
                     if m:
-                        registry = m.group("registry")
+                        m.group("registry")
                         rest = image[m.end():]
                         container["image"] = f"[REDACTED:registry]/{rest}"
                         entries.append(RedactionEntry(

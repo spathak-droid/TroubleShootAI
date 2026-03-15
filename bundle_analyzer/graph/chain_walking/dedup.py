@@ -30,7 +30,7 @@ def deduplicate(chains: list[CausalChain]) -> list[CausalChain]:
             no_cause.append(chain)
 
     result: list[CausalChain] = []
-    for cause, group in by_cause.items():
+    for _cause, group in by_cause.items():
         if len(group) == 1:
             result.append(group[0])
         else:

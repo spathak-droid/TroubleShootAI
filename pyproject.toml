@@ -26,3 +26,45 @@ dev = ["pytest>=8.0.0", "pytest-asyncio>=0.23.0", "pytest-mock>=3.12.0"]
 
 [project.scripts]
 bundle-analyzer = "bundle_analyzer.cli:app"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "ASYNC", # flake8-async
+    "S",     # flake8-bandit (security)
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "S101",  # assert usage (needed in tests)
+    "B008",  # function call in default arg (FastAPI Depends)
+    "S110",  # try-except-pass (used for optional feature detection)
+    "S324",  # md5 usage (non-crypto hashing for grouping keys)
+    "S105",  # hardcoded password false positives (K8s type strings)
+    "E741",  # ambiguous variable name (list comprehension vars)
+    "ASYNC109", # timeout param naming (project convention)
+    "ASYNC240", # pathlib in async (test-only, not production)
+    "B905",  # zip strict (Python 3.10+ compat not needed)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]
+"bundle_analyzer/api/main.py" = ["E402"]  # dotenv must load before imports
+"bundle_analyzer/ai/engines/prediction/engine.py" = ["E402"]  # dataclass defined before imports
+"bundle_analyzer/cli/app.py" = ["S104"]  # 0.0.0.0 binding is intentional for CLI server
+"bundle_analyzer/api/upload.py" = ["ASYNC230"]  # streaming upload uses blocking open intentionally
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

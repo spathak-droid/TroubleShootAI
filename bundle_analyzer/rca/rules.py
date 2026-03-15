@@ -9,19 +9,18 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from bundle_analyzer.models.triage import (
     ConfigIssue,
-    DeploymentIssue,
     NodeIssue,
     PodIssue,
     SchedulingIssue,
     StorageIssue,
 )
 from bundle_analyzer.models.troubleshoot import TriageResult
-
 
 # ---------------------------------------------------------------------------
 # Forward reference: Hypothesis is defined in hypothesis_engine.py but we
@@ -407,7 +406,7 @@ def _match_node_issue(triage: TriageResult) -> list[list[Any]]:
     if not triage.node_issues:
         return []
 
-    bad_nodes = {n.node_name for n in triage.node_issues}
+    {n.node_name for n in triage.node_issues}
 
     # We can't always determine node from PodIssue (field may not exist),
     # but node_issues themselves are strong evidence.
@@ -417,7 +416,7 @@ def _match_node_issue(triage: TriageResult) -> list[list[Any]]:
         by_node[ni.node_name].append(ni)
 
     groups: list[list[Any]] = []
-    for node_name, issues in by_node.items():
+    for _node_name, issues in by_node.items():
         groups.append(issues)
 
     return groups if groups else []
@@ -471,7 +470,7 @@ def _match_deployment_wide(triage: TriageResult) -> list[list[Any]]:
         by_prefix[key].append(pod)
 
     groups: list[list[Any]] = []
-    for key, pods in by_prefix.items():
+    for _key, pods in by_prefix.items():
         if len(pods) < 2:
             continue
         # Check that all pods share the same issue type

@@ -12,14 +12,13 @@ from loguru import logger
 
 from bundle_analyzer.ai.client import BundleAnalyzerClient
 from bundle_analyzer.ai.context_injector import ContextInjector
-from bundle_analyzer.bundle.indexer import BundleIndex
-from bundle_analyzer.models import AnalystOutput, TriageResult
-
 from bundle_analyzer.ai.orchestration.helpers import (
     empty_analyst_output,
     find_node_json,
     find_pod_json,
 )
+from bundle_analyzer.bundle.indexer import BundleIndex
+from bundle_analyzer.models import AnalystOutput, TriageResult
 
 # Limit per-analyst-type concurrency to avoid API rate limits
 MAX_PODS_TO_ANALYZE = 5
@@ -47,7 +46,7 @@ async def _analyze_with_timeout(
     """
     try:
         return await asyncio.wait_for(coro, timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("Analysis timed out for {} after {}s", resource_name, timeout)
         return None
 
@@ -145,7 +144,7 @@ async def run_analysts_parallel(
             asyncio.gather(*tasks, return_exceptions=True),
             timeout=AI_ANALYST_TIMEOUT,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("AI analysts timed out after {}s", AI_ANALYST_TIMEOUT)
         results = []
 

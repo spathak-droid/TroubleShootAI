@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
 from loguru import logger
 
 from bundle_analyzer.api.deps import get_store
@@ -71,7 +70,7 @@ async def progress_websocket(
                     )
                     break
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Send a heartbeat to keep the connection alive
                 await websocket.send_json({
                     "stage": "heartbeat",

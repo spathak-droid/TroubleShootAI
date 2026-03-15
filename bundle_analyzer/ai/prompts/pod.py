@@ -6,8 +6,6 @@ to analyze pod failures, exit codes, and container logs.
 
 from __future__ import annotations
 
-from typing import Optional
-
 POD_SYSTEM_PROMPT = """\
 You are a Kubernetes forensics expert analyzing a support bundle — forensic evidence \
 from a cluster you cannot access directly. Your job is to determine the root cause \
@@ -54,14 +52,14 @@ Respond in this exact JSON format:
 
 def build_pod_user_prompt(
     pod_json: str,
-    current_logs: Optional[str] = None,
-    previous_logs: Optional[str] = None,
-    exit_codes: Optional[str] = None,
-    events: Optional[str] = None,
-    node_conditions: Optional[str] = None,
+    current_logs: str | None = None,
+    previous_logs: str | None = None,
+    exit_codes: str | None = None,
+    events: str | None = None,
+    node_conditions: str | None = None,
     *,
     pod_json_path: str = "",
-    log_paths: Optional[list[str]] = None,
+    log_paths: list[str] | None = None,
     events_path: str = "",
     node_json_path: str = "",
 ) -> str:

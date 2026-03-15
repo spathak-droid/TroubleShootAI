@@ -16,7 +16,6 @@ from loguru import logger
 from bundle_analyzer.security.entropy import EntropyDetector
 from bundle_analyzer.security.kubernetes import KubernetesStructuralScrubber
 from bundle_analyzer.security.models import (
-    RedactionEntry,
     SanitizationReport,
     SecurityPolicy,
 )

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 
-
 # JSON structured logs
 _JSON_LEVEL_RE: re.Pattern[str] = re.compile(r'"(?:level|severity|log\.level)":\s*"(\w+)"', re.IGNORECASE)
 

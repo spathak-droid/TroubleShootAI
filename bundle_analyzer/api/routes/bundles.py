@@ -5,9 +5,8 @@ from __future__ import annotations
 import shutil
 
 from fastapi import APIRouter, Depends, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from bundle_analyzer.api.deps import get_db, get_session, get_store
 from bundle_analyzer.api.firebase_auth import get_current_user

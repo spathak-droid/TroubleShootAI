@@ -2,6 +2,7 @@
 
 __version__ = "0.1.0"
 
+from bundle_analyzer.bundle import BundleExtractor, BundleIndex
 from bundle_analyzer.models import (
     AnalysisResult,
     AnalystOutput,
@@ -17,12 +18,11 @@ from bundle_analyzer.models import (
     NodeIssue,
     PodIssue,
     PredictedFailure,
-    SimulationResult,
     SilenceSignal,
+    SimulationResult,
     TriageResult,
     UncertaintyGap,
 )
-from bundle_analyzer.bundle import BundleExtractor, BundleIndex
 from bundle_analyzer.triage import TriageEngine
 
 __all__ = [

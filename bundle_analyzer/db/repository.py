@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from loguru import logger
@@ -34,7 +34,7 @@ async def create_bundle_record(
         user_id=user_id,
         filename=filename,
         status="uploaded",
-        uploaded_at=datetime.now(timezone.utc),
+        uploaded_at=datetime.now(UTC),
     )
     db.add(record)
     await db.commit()
@@ -94,7 +94,7 @@ async def save_analysis_result(
         .values(
             status="complete",
             progress=1.0,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
             analysis_json=analysis_dict,
             summary=summary,
             finding_count=finding_count,

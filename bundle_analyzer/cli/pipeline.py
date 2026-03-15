@@ -78,12 +78,12 @@ async def _run_full_analysis(
     from bundle_analyzer.ai.context_injector import ContextInjector
     from bundle_analyzer.ai.orchestrator import AnalysisOrchestrator
 
-    start = time.monotonic()
+    time.monotonic()
     diff_result = None
 
     # Step 1-3: Extract + index + triage
     index, triage = await _run_extraction_and_triage(bundle_path)
-    console.print(f"[dim]Triage completed[/dim]")
+    console.print("[dim]Triage completed[/dim]")
 
     # Step 5: Diff comparison if requested
     if compare_path:

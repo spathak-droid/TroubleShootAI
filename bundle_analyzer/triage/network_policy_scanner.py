@@ -24,7 +24,7 @@ class NetworkPolicyScanner:
     network policies defined.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[NetworkPolicyIssue]:
+    async def scan(self, index: BundleIndex) -> list[NetworkPolicyIssue]:
         """Scan all network policies for issues.
 
         Args:
@@ -48,7 +48,7 @@ class NetworkPolicyScanner:
         return issues
 
     def _build_pod_labels_map(
-        self, index: "BundleIndex",
+        self, index: BundleIndex,
     ) -> dict[str, list[dict[str, str]]]:
         """Build a mapping of namespace to list of pod label dicts.
 
@@ -75,7 +75,7 @@ class NetworkPolicyScanner:
 
     def _scan_network_policies(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         pod_labels_by_ns: dict[str, list[dict[str, str]]],
         issues: list[NetworkPolicyIssue],
     ) -> dict[str, list[str]]:
@@ -180,7 +180,7 @@ class NetworkPolicyScanner:
                         ),
                         severity="warning",
                         source_file=np_source,
-                        evidence_excerpt=f"policyTypes=[Ingress], ingress rules empty/absent",
+                        evidence_excerpt="policyTypes=[Ingress], ingress rules empty/absent",
                     ))
 
             # Detect deny-all egress: policyTypes includes Egress but
@@ -202,7 +202,7 @@ class NetworkPolicyScanner:
                         ),
                         severity="warning",
                         source_file=np_source,
-                        evidence_excerpt=f"policyTypes=[Egress], egress rules empty/absent",
+                        evidence_excerpt="policyTypes=[Egress], egress rules empty/absent",
                     ))
 
             # Detect orphaned policies: selector matches no pods
@@ -267,7 +267,7 @@ class NetworkPolicyScanner:
 
     def _check_namespaces_without_policies(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         policies_by_ns: dict[str, list[str]],
         issues: list[NetworkPolicyIssue],
     ) -> None:

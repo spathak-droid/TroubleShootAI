@@ -30,7 +30,7 @@ class NodeScanner:
     MemoryPressure, DiskPressure, PIDPressure, NotReady, and Unschedulable.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[NodeIssue]:
+    async def scan(self, index: BundleIndex) -> list[NodeIssue]:
         """Scan all nodes and return detected issues.
 
         Args:
@@ -60,7 +60,7 @@ class NodeScanner:
         logger.info("NodeScanner found {} issues across {} nodes", len(issues), len(nodes))
         return issues
 
-    def _read_nodes(self, index: "BundleIndex") -> list[dict]:
+    def _read_nodes(self, index: BundleIndex) -> list[dict]:
         """Read node resources from the bundle."""
         try:
             data = index.read_json("cluster-resources/nodes.json")
@@ -76,7 +76,7 @@ class NodeScanner:
             logger.warning("Failed to read nodes: {}", exc)
             return []
 
-    def _read_node_metrics(self, index: "BundleIndex") -> dict[str, dict]:
+    def _read_node_metrics(self, index: BundleIndex) -> dict[str, dict]:
         """Read node metrics keyed by node name. Returns empty dict if unavailable."""
         try:
             data = index.read_json("cluster-resources/nodes/metrics.json")

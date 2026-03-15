@@ -2,30 +2,22 @@
 
 from __future__ import annotations
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-from bundle_analyzer.triage.log_intelligence import (
-    LogIntelligenceEngine,
-    _parse_timestamp,
-    _detect_ts_format,
-    _extract_level,
-    _detect_stack_traces,
-    _find_interesting_windows,
-    _correlate_containers,
-)
 from bundle_analyzer.models import (
     LogIntelligence,
-    PodLogIntelligence,
     PatternFrequency,
+    PodLogIntelligence,
     StackTraceGroup,
-    LogWindow,
-    CrossContainerCorrelation,
-    ErrorRateBucket,
-    ContainerTimeline,
-    TimelineEntry,
 )
-
+from bundle_analyzer.triage.log_intelligence import (
+    _correlate_containers,
+    _detect_stack_traces,
+    _detect_ts_format,
+    _extract_level,
+    _find_interesting_windows,
+    _parse_timestamp,
+)
 
 # ── Timestamp parsing tests ──────────────────────────────────────────
 
@@ -249,7 +241,7 @@ class TestWindowFinding:
         assert any(w.trigger == "state_transition" for w in windows)
 
     def test_error_spike_detected(self) -> None:
-        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=UTC)
         lines: list[str] = []
         levels: list[str] = []
         timestamps: list[datetime | None] = []
@@ -276,7 +268,7 @@ class TestWindowFinding:
         assert any(w.trigger == "error_spike" for w in windows)
 
     def test_first_error_after_silence(self) -> None:
-        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=UTC)
         lines = []
         levels = []
         timestamps: list[datetime | None] = []
@@ -306,7 +298,7 @@ class TestCrossContainerCorrelation:
     """Test detection of correlations between containers."""
 
     def test_sidecar_precedes_main(self) -> None:
-        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=UTC)
 
         sidecar = LogIntelligence(
             namespace="default",
@@ -345,7 +337,7 @@ class TestCrossContainerCorrelation:
         assert any(c.correlation_type == "sidecar_failure_precedes_main" for c in correlations)
 
     def test_shared_dependency_failure(self) -> None:
-        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+        base = datetime(2024, 1, 15, 14, 0, 0, tzinfo=UTC)
         c1 = LogIntelligence(
             namespace="default", pod_name="app-1", container_name="web",
             total_lines_scanned=100,
@@ -415,14 +407,15 @@ class TestModelSerialization:
 
 def _build_intel_from_lines(lines: list[str]) -> LogIntelligence:
     """Quick helper to run pattern matching on a list of lines."""
-    from bundle_analyzer.triage.log_intelligence import _FAILURE_PATTERNS
     from collections import Counter
+
+    from bundle_analyzer.triage.log_intelligence import _FAILURE_PATTERNS
 
     pattern_counts: Counter[str] = Counter()
     has_oom = has_conn = has_perm = has_dns = has_cert = has_rl = False
 
     for line in lines:
-        for category, label, regex, sev in _FAILURE_PATTERNS:
+        for category, label, regex, _sev in _FAILURE_PATTERNS:
             if regex.search(line):
                 pattern_counts[label] += 1
                 if category == "oom":

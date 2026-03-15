@@ -38,7 +38,7 @@ class ProbeScanner:
     probes for containers with high restart counts.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[ProbeIssue]:
+    async def scan(self, index: BundleIndex) -> list[ProbeIssue]:
         """Scan all pods and return detected probe issues.
 
         Args:
@@ -142,7 +142,7 @@ class ProbeScanner:
                     ),
                     severity="warning",
                     source_file=source_file,
-                    evidence_excerpt=f"livenessProbe present, readinessProbe absent",
+                    evidence_excerpt="livenessProbe present, readinessProbe absent",
                 ))
 
             # Same endpoint for liveness and readiness

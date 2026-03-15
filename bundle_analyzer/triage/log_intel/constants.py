@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 
-
 # ── Limits ────────────────────────────────────────────────────────────
 
 # Max containers to analyze per pod (prevent runaway on sidecar-heavy pods)

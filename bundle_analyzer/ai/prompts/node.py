@@ -6,8 +6,6 @@ to analyze node conditions, resource pressure, and scheduling.
 
 from __future__ import annotations
 
-from typing import Optional
-
 NODE_SYSTEM_PROMPT = """\
 You are a Kubernetes node forensics expert analyzing a support bundle — forensic evidence \
 from a cluster you cannot access directly. Your focus is node-level failures: resource \
@@ -53,10 +51,10 @@ Respond in this exact JSON format:
 
 def build_node_user_prompt(
     node_json: str,
-    scheduled_pods: Optional[str] = None,
-    node_metrics: Optional[str] = None,
-    warning_events: Optional[str] = None,
-    eviction_events: Optional[str] = None,
+    scheduled_pods: str | None = None,
+    node_metrics: str | None = None,
+    warning_events: str | None = None,
+    eviction_events: str | None = None,
     *,
     node_json_path: str = "",
     metrics_path: str = "",

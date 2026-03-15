@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import uuid
 
-
 # ── Known error patterns in log output ───────────────────────────────
 
 _LOG_PATTERNS: list[tuple[re.Pattern[str], str]] = [

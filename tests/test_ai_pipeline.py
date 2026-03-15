@@ -7,13 +7,12 @@ retry behavior, response parsing, interview history, and context injection.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import pytest_asyncio
 
 from bundle_analyzer.ai.context_injector import ContextInjector
 from bundle_analyzer.ai.synthesis import SynthesisEngine
@@ -59,7 +58,7 @@ def _make_triage() -> TriageResult:
                 type="Warning",
                 involved_object_kind="Pod",
                 involved_object_name="crash-pod",
-                last_timestamp=datetime(2024, 1, 15, 10, 5, tzinfo=timezone.utc),
+                last_timestamp=datetime(2024, 1, 15, 10, 5, tzinfo=UTC),
                 count=5,
             ),
         ],

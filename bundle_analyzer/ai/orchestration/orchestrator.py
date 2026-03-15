@@ -8,12 +8,26 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from loguru import logger
 
 from bundle_analyzer.ai.client import BundleAnalyzerClient
 from bundle_analyzer.ai.context_injector import ContextInjector
+from bundle_analyzer.ai.orchestration.helpers import (
+    build_cluster_summary,
+    build_uncertainty_report,
+    confidence_to_float,
+    report_progress,
+)
+from bundle_analyzer.ai.orchestration.steps.analysts import run_analysts_parallel
+from bundle_analyzer.ai.orchestration.steps.archaeology import run_archaeology
+from bundle_analyzer.ai.orchestration.steps.causal import run_causal_analysis
+from bundle_analyzer.ai.orchestration.steps.log_analysis import run_log_analysis
+from bundle_analyzer.ai.orchestration.steps.prediction import run_prediction
+from bundle_analyzer.ai.orchestration.steps.synthesis import run_synthesis
+from bundle_analyzer.ai.validation.claim_validator import ClaimValidator
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import (
     AnalysisResult,
@@ -21,20 +35,6 @@ from bundle_analyzer.models import (
     TriageResult,
     UncertaintyGap,
 )
-
-from bundle_analyzer.ai.orchestration.helpers import (
-    build_cluster_summary,
-    build_uncertainty_report,
-    confidence_to_float,
-    report_progress,
-)
-from bundle_analyzer.ai.orchestration.steps.archaeology import run_archaeology
-from bundle_analyzer.ai.orchestration.steps.analysts import run_analysts_parallel
-from bundle_analyzer.ai.orchestration.steps.causal import run_causal_analysis
-from bundle_analyzer.ai.orchestration.steps.log_analysis import run_log_analysis
-from bundle_analyzer.ai.orchestration.steps.prediction import run_prediction
-from bundle_analyzer.ai.orchestration.steps.synthesis import run_synthesis
-from bundle_analyzer.ai.validation.claim_validator import ClaimValidator
 from bundle_analyzer.rca.hypothesis_engine import HypothesisEngine
 
 
@@ -50,7 +50,7 @@ class AnalysisOrchestrator:
         triage: TriageResult,
         index: BundleIndex,
         context_injector: ContextInjector,
-        progress_callback: Optional[Callable[..., Any]] = None,
+        progress_callback: Callable[..., Any] | None = None,
     ) -> AnalysisResult:
         """Execute the full AI analysis pipeline.
 

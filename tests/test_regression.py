@@ -17,7 +17,6 @@ from pathlib import Path
 import pytest
 
 from bundle_analyzer.bundle.indexer import BundleIndex
-from bundle_analyzer.rca.hypothesis_engine import HypothesisEngine
 from bundle_analyzer.triage.engine import TriageEngine
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "bundles"

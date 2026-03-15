@@ -6,8 +6,6 @@ estimating time until OOM from growth rates.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import PredictedFailure
 
@@ -88,7 +86,7 @@ def predict_oom_from_pods(index: BundleIndex) -> list[PredictedFailure]:
 
 def predict_oom(
     pod_json: dict, metrics: dict | None = None
-) -> Optional[PredictedFailure]:
+) -> PredictedFailure | None:
     """Estimate OOM ETA from memory growth rate for a single pod.
 
     Args:

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from bundle_analyzer.models import AnalysisResult
 
-
 INTERVIEW_SYSTEM_PROMPT = """\
 You are a forensic investigator answering questions about a Kubernetes support bundle.
 You have access to the complete analysis results and raw bundle data.

@@ -8,7 +8,6 @@ Silence is a signal: missing data often tells more than present data.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
 from loguru import logger
 

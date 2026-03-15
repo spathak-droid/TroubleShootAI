@@ -51,7 +51,7 @@ class SchedulingScanner:
        nodeSelector cannot be satisfied by any cluster node.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[SchedulingIssue]:
+    async def scan(self, index: BundleIndex) -> list[SchedulingIssue]:
         """Run all scheduling checks against the bundle.
 
         Args:
@@ -76,7 +76,7 @@ class SchedulingScanner:
     # Event-based detection
     # ------------------------------------------------------------------
 
-    def _scan_events(self, index: "BundleIndex") -> list[SchedulingIssue]:
+    def _scan_events(self, index: BundleIndex) -> list[SchedulingIssue]:
         """Parse FailedScheduling events and classify root causes."""
         issues: list[SchedulingIssue] = []
 
@@ -177,7 +177,7 @@ class SchedulingScanner:
 
     def _scan_node_selector_mismatch(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         node_labels: list[dict[str, str]],
     ) -> list[SchedulingIssue]:
         """Find pods whose nodeSelector cannot be satisfied by any node."""
@@ -246,7 +246,7 @@ class SchedulingScanner:
         return all(node_labels.get(k) == v for k, v in selector.items())
 
     @staticmethod
-    def _read_nodes(index: "BundleIndex") -> list[dict]:
+    def _read_nodes(index: BundleIndex) -> list[dict]:
         """Read node resources from the bundle.
 
         Checks both ``cluster-resources/nodes.json`` (list format) and

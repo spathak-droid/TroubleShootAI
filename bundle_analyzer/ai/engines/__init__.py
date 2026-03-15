@@ -5,7 +5,7 @@ from bundle_analyzer.ai.engines.archaeology import (
     Timeline,
     TimelineEvent,
 )
-from bundle_analyzer.ai.engines.diff import DiffEngine, DiffResult, DiffFinding
+from bundle_analyzer.ai.engines.diff import DiffEngine, DiffFinding, DiffResult
 from bundle_analyzer.ai.engines.prediction import (
     ForwardPredictionEngine,
     Prediction,

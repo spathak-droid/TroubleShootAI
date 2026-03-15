@@ -131,7 +131,7 @@ async def get_current_user(request: Request) -> str:
         return uid
     except Exception as exc:
         logger.warning("Firebase token verification failed: {}", exc)
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
 
 
 async def get_optional_user(request: Request) -> str | None:

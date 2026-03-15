@@ -23,7 +23,6 @@ def _print_diff_report(diff_result: DiffResult) -> None:
     Args:
         diff_result: The result of comparing two bundles.
     """
-    from bundle_analyzer.ai.engines.diff import DiffResult  # noqa: F811
 
     console.print()
     console.print(Panel(

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bundle_analyzer.models import CausalStep, NodeIssue, PodIssue, TriageResult
+from bundle_analyzer.models import CausalStep, PodIssue, TriageResult
 
 from .data_access import (
     check_config_issues,

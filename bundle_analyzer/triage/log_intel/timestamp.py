@@ -7,8 +7,7 @@ epoch seconds, epoch milliseconds, and RFC 2822.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 # ── Timestamp patterns ────────────────────────────────────────────────
 
@@ -59,24 +58,24 @@ def parse_timestamp(line: str, detected_format: str | None = None) -> datetime |
                 return datetime.fromisoformat(raw.replace('Z', '+00:00'))
             elif fmt == 'klog':
                 # Format: MMDD HH:MM:SS.ffffff -- no year, assume current year
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 dt = datetime.strptime(raw, "%m%d %H:%M:%S.%f")
-                return dt.replace(year=now.year, tzinfo=timezone.utc)
+                return dt.replace(year=now.year, tzinfo=UTC)
             elif fmt == 'python_java':
                 raw_norm = raw.replace(',', '.')
-                return datetime.strptime(raw_norm, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=timezone.utc)
+                return datetime.strptime(raw_norm, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=UTC)
             elif fmt == 'go':
-                return datetime.strptime(raw, "%Y/%m/%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                return datetime.strptime(raw, "%Y/%m/%d %H:%M:%S").replace(tzinfo=UTC)
             elif fmt == 'syslog':
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 dt = datetime.strptime(raw, "%b %d %H:%M:%S")
-                return dt.replace(year=now.year, tzinfo=timezone.utc)
+                return dt.replace(year=now.year, tzinfo=UTC)
             elif fmt == 'epoch_ms':
-                return datetime.fromtimestamp(int(raw) / 1000, tz=timezone.utc)
+                return datetime.fromtimestamp(int(raw) / 1000, tz=UTC)
             elif fmt == 'epoch':
-                return datetime.fromtimestamp(int(raw), tz=timezone.utc)
+                return datetime.fromtimestamp(int(raw), tz=UTC)
             elif fmt == 'rfc2822':
-                return datetime.strptime(raw, "%a, %d %b %Y %H:%M:%S").replace(tzinfo=timezone.utc)
+                return datetime.strptime(raw, "%a, %d %b %Y %H:%M:%S").replace(tzinfo=UTC)
         except (ValueError, OSError, OverflowError):
             continue
     return None

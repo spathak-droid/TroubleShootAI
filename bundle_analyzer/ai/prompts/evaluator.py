@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from bundle_analyzer.models import AnalysisResult
 
-
 EVALUATOR_SYSTEM_PROMPT = """\
 You are a senior Kubernetes SRE performing a FORENSIC REVIEW of an automated \
 support bundle analysis. You have access to the raw evidence and the app's \

@@ -8,7 +8,6 @@ in the bundle to detect missing TLS secrets.
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -51,7 +50,7 @@ class TLSScanner:
     - Missing TLS secrets referenced by Ingress resources
     """
 
-    async def scan(self, index: "BundleIndex") -> list[TLSIssue]:
+    async def scan(self, index: BundleIndex) -> list[TLSIssue]:
         """Scan the bundle for TLS-related issues.
 
         Examines pod logs for certificate error patterns and cross-references
@@ -75,7 +74,7 @@ class TLSScanner:
         logger.info("TLSScanner found {} issues", len(issues))
         return issues
 
-    async def _scan_pod_logs(self, index: "BundleIndex") -> list[TLSIssue]:
+    async def _scan_pod_logs(self, index: BundleIndex) -> list[TLSIssue]:
         """Scan all pod logs for TLS error patterns.
 
         Iterates through every pod's containers and streams their logs,
@@ -106,7 +105,7 @@ class TLSScanner:
         return issues
 
     def _scan_single_pod_logs(
-        self, pod: dict, index: "BundleIndex",
+        self, pod: dict, index: BundleIndex,
     ) -> list[TLSIssue]:
         """Scan logs of a single pod for TLS error patterns.
 
@@ -189,7 +188,7 @@ class TLSScanner:
         return issues
 
     async def _scan_ingress_tls_secrets(
-        self, index: "BundleIndex",
+        self, index: BundleIndex,
     ) -> list[TLSIssue]:
         """Check that TLS secrets referenced by Ingress resources exist.
 
@@ -217,7 +216,7 @@ class TLSScanner:
         return issues
 
     def _check_namespace_ingress_tls(
-        self, index: "BundleIndex", namespace: str,
+        self, index: BundleIndex, namespace: str,
     ) -> list[TLSIssue]:
         """Check ingress TLS secret references in a single namespace.
 
@@ -273,7 +272,7 @@ class TLSScanner:
         return issues
 
     def _read_resources(
-        self, index: "BundleIndex", namespace: str, resource_type: str,
+        self, index: BundleIndex, namespace: str, resource_type: str,
     ) -> list[dict]:
         """Read a list of Kubernetes resources from the bundle.
 

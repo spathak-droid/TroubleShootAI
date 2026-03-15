@@ -10,7 +10,6 @@ import asyncio
 import os
 import time
 from collections.abc import AsyncIterator
-from typing import Optional
 
 from loguru import logger
 
@@ -56,7 +55,7 @@ class BundleAnalyzerClient:
     Anthropic uses its own SDK.
     """
 
-    def __init__(self, api_key: Optional[str] = None, max_retries: int = 3) -> None:
+    def __init__(self, api_key: str | None = None, max_retries: int = 3) -> None:
         """Initialise the AI client with the best available provider.
 
         Args:
@@ -325,6 +324,7 @@ class BundleAnalyzerClient:
                 san_report.total_redactions,
             )
 
+        chunk_count = 0
         if self._provider in ("openrouter", "openai"):
             stream = await self._async_client.chat.completions.create(
                 model=self._model,
@@ -339,7 +339,16 @@ class BundleAnalyzerClient:
             async for chunk in stream:
                 delta = chunk.choices[0].delta if chunk.choices else None
                 if delta and delta.content:
+                    chunk_count += 1
                     yield delta.content
+                # Detect max_tokens cutoff
+                finish = chunk.choices[0].finish_reason if chunk.choices else None
+                if finish == "length":
+                    logger.warning(
+                        "Stream hit max_tokens limit ({}) — response truncated",
+                        max_tokens,
+                    )
+                    yield "\n\n*[Response truncated due to length — ask a follow-up for more details]*"
         else:
             # Anthropic streaming
             async with self._async_client.messages.stream(
@@ -350,7 +359,16 @@ class BundleAnalyzerClient:
                 messages=[{"role": "user", "content": sanitized_user}],
             ) as stream:
                 async for text in stream.text_stream:
+                    chunk_count += 1
                     yield text
+                # Check if Anthropic hit the token limit
+                final_message = stream.get_final_message()
+                if final_message and final_message.stop_reason == "max_tokens":
+                    logger.warning(
+                        "Anthropic stream hit max_tokens limit ({}) — response truncated",
+                        max_tokens,
+                    )
+                    yield "\n\n*[Response truncated due to length — ask a follow-up for more details]*"
 
     def complete_sync(
         self,

@@ -146,7 +146,7 @@ class HypothesisEngine:
             The same hypotheses with contradicting_evidence updated.
         """
         # Build quick lookups
-        bad_node_names = {n.node_name for n in triage.node_issues}
+        {n.node_name for n in triage.node_issues}
         has_memory_pressure = any(n.condition == "MemoryPressure" for n in triage.node_issues)
         all_deps_healthy = all(d.ready_replicas >= d.desired_replicas for d in triage.deployment_issues) if triage.deployment_issues else True
 

@@ -74,7 +74,7 @@ def find_interesting_windows(
                 median_count = counts[len(counts) // 2] if counts else 0
                 spike_threshold = max(3, int(median_count * SPIKE_MULTIPLIER)) if median_count > 1 else 5
 
-                for bucket_id, indices in error_buckets.items():
+                for _bucket_id, indices in error_buckets.items():
                     if len(indices) >= spike_threshold:
                         mid = indices[len(indices) // 2]
                         start = max(0, mid - 15)

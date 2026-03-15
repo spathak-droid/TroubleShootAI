@@ -6,8 +6,8 @@ extraction (session lookup with 404 handling).
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 
 from fastapi import Depends, HTTPException
 from loguru import logger
@@ -95,9 +95,13 @@ async def get_session(
                         try:
                             from bundle_analyzer.models import AnalysisResult
                             stub.analysis = AnalysisResult.model_validate(record.analysis_json)
+                            # Also populate triage from the analysis
+                            if stub.analysis is not None and stub.analysis.triage is not None:
+                                stub.triage = stub.analysis.triage
                         except Exception as exc:
                             logger.warning("Failed to deserialize analysis from DB: {}", exc)
-                            # Still allow access — the raw JSON can be served
+                            # Store raw dict so endpoints can serve it directly
+                            stub._raw_analysis_json = record.analysis_json
                             stub.analysis = None
 
                     # Restore evaluation if present
@@ -106,8 +110,9 @@ async def get_session(
                             from bundle_analyzer.models import EvaluationResult
                             stub.evaluation = EvaluationResult.model_validate(record.evaluation_json)
                             stub.evaluation_status = "complete"
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            logger.warning("Failed to deserialize evaluation from DB: {}", exc)
+                            stub._raw_evaluation_json = record.evaluation_json
 
                     # Cache in the store so subsequent requests don't hit DB again
                     store._sessions[bundle_id] = stub

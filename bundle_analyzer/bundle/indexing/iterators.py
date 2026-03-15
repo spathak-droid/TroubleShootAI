@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from bundle_analyzer.bundle.indexing.readers import read_json
 
@@ -32,8 +32,7 @@ def get_all_pods(root: Path) -> Iterator[dict[str, Any]]:
                 if isinstance(data, list):
                     yield from data
                 elif isinstance(data, dict):
-                    for item in (data.get("items") or []):
-                        yield item
+                    yield from (data.get("items") or [])
             continue
         for pod_file in sorted(ns_dir.glob("*.json")):
             data = read_json(root, str(pod_file.relative_to(root)))

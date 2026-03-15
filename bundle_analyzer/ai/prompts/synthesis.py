@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from bundle_analyzer.models import AnalystOutput, TriageResult
 
-
 SYNTHESIS_SYSTEM_PROMPT = """\
 You are the senior incident commander synthesizing reports from specialized analysts \
 who each examined different aspects of a Kubernetes cluster failure. Your job is to find \
@@ -284,7 +283,7 @@ def build_synthesis_user_prompt(
         if corrs:
             sections.append("## What Changed Before Failures (Change Correlation)")
             for corr in corrs[:5]:
-                strength_icon = {"strong": "🔴", "moderate": "🟡", "weak": "⚪"}.get(
+                {"strong": "🔴", "moderate": "🟡", "weak": "⚪"}.get(
                     corr.correlation_strength, "⚪"
                 )
                 sections.append(

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from loguru import logger
 
+from bundle_analyzer.ai.orchestration.helpers import timeline_from_triage
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import HistoricalEvent, TriageResult
-
-from bundle_analyzer.ai.orchestration.helpers import timeline_from_triage
 
 
 async def run_archaeology(

@@ -10,7 +10,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-import pytest_asyncio
 
 from bundle_analyzer.graph.chain_walker import ChainWalker
 from bundle_analyzer.models import (

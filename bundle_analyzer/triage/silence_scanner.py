@@ -7,7 +7,7 @@ RBAC-blocked resources from the bundle index.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -31,7 +31,7 @@ class SilenceScanner:
     - RBAC-blocked resources from index.rbac_errors
     """
 
-    async def scan(self, index: "BundleIndex") -> list[SilenceSignal]:
+    async def scan(self, index: BundleIndex) -> list[SilenceSignal]:
         """Scan all running pods for silence signals and check RBAC errors.
 
         Args:
@@ -64,7 +64,7 @@ class SilenceScanner:
         logger.info("SilenceScanner found {} signals", len(signals))
         return signals
 
-    def _check_pod(self, pod: dict, index: "BundleIndex") -> list[SilenceSignal]:
+    def _check_pod(self, pod: dict, index: BundleIndex) -> list[SilenceSignal]:
         """Check a single pod for silence signals."""
         signals: list[SilenceSignal] = []
         metadata = pod.get("metadata", {})
@@ -124,7 +124,7 @@ class SilenceScanner:
                     ],
                     note=f"Pod is Running but log file for {container_name} is empty",
                     source_file=expected_log_path,
-                    evidence_excerpt=f"phase=Running, log file exists but is empty (0 bytes)",
+                    evidence_excerpt="phase=Running, log file exists but is empty (0 bytes)",
                 ))
 
             # Check for previous log when restarts > 0
@@ -149,7 +149,7 @@ class SilenceScanner:
 
         return signals
 
-    def _check_rbac(self, index: "BundleIndex") -> list[SilenceSignal]:
+    def _check_rbac(self, index: BundleIndex) -> list[SilenceSignal]:
         """Check index.rbac_errors for RBAC-blocked signals."""
         signals: list[SilenceSignal] = []
         rbac_errors = getattr(index, "rbac_errors", []) or []
@@ -195,14 +195,14 @@ class SilenceScanner:
                 created = datetime.fromisoformat(creation_ts.replace("Z", "+00:00"))
             else:
                 created = creation_ts
-            age_seconds = (datetime.now(timezone.utc) - created).total_seconds()
+            age_seconds = (datetime.now(UTC) - created).total_seconds()
             return age_seconds >= _MIN_AGE_SECONDS
         except (ValueError, TypeError):
             return True  # assume old enough on parse failure
 
     def _log_exists(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         pod_name: str,
         container_name: str,
@@ -227,7 +227,7 @@ class SilenceScanner:
 
     def _log_is_empty(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         pod_name: str,
         container_name: str,

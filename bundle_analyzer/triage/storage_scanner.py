@@ -23,7 +23,7 @@ class StorageScanner:
     and PVs in Released or Failed phase.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[StorageIssue]:
+    async def scan(self, index: BundleIndex) -> list[StorageIssue]:
         """Scan all storage resources and return detected issues.
 
         Args:
@@ -57,7 +57,7 @@ class StorageScanner:
         logger.info("StorageScanner found {} issues", len(issues))
         return issues
 
-    def _get_storage_class_names(self, index: "BundleIndex") -> set[str]:
+    def _get_storage_class_names(self, index: BundleIndex) -> set[str]:
         """Load the set of available StorageClass names."""
         names: set[str] = set()
         data = index.read_json("cluster-resources/storage-classes.json")
@@ -82,7 +82,7 @@ class StorageScanner:
 
     def _scan_pvcs(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         storage_class_names: set[str],
     ) -> list[StorageIssue]:
@@ -101,7 +101,7 @@ class StorageScanner:
             if phase == "Pending":
                 message = f"PVC '{pvc_name}' in namespace '{namespace}' is stuck in Pending phase."
                 conditions = pvc.get("status", {}).get("conditions", [])
-                cond_excerpt = f"status.phase=Pending"
+                cond_excerpt = "status.phase=Pending"
                 for cond in conditions:
                     if cond.get("message"):
                         message += f" {cond['message']}"
@@ -136,7 +136,7 @@ class StorageScanner:
 
         return issues
 
-    def _scan_pvs(self, index: "BundleIndex") -> list[StorageIssue]:
+    def _scan_pvs(self, index: BundleIndex) -> list[StorageIssue]:
         """Scan PVs for Released or Failed phase."""
         issues: list[StorageIssue] = []
 
@@ -158,7 +158,7 @@ class StorageScanner:
                     ),
                     severity="warning",
                     source_file="cluster-resources/pvs.json",
-                    evidence_excerpt=f"status.phase=Released",
+                    evidence_excerpt="status.phase=Released",
                 ))
             elif phase == "Failed":
                 issues.append(StorageIssue(
@@ -172,13 +172,13 @@ class StorageScanner:
                     ),
                     severity="critical",
                     source_file="cluster-resources/pvs.json",
-                    evidence_excerpt=f"status.phase=Failed",
+                    evidence_excerpt="status.phase=Failed",
                 ))
 
         return issues
 
     def _read_resources(
-        self, index: "BundleIndex", namespace: str, resource_type: str,
+        self, index: BundleIndex, namespace: str, resource_type: str,
     ) -> list[dict]:
         """Read a list of namespaced resources from the bundle."""
         try:
@@ -196,7 +196,7 @@ class StorageScanner:
             logger.debug("Could not read {} for {}: {}", resource_type, namespace, exc)
             return []
 
-    def _read_pv_resources(self, index: "BundleIndex") -> list[dict]:
+    def _read_pv_resources(self, index: BundleIndex) -> list[dict]:
         """Read PV resources (cluster-scoped)."""
         try:
             # PVs may be in a single file or directory

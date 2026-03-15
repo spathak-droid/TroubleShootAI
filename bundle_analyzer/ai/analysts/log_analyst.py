@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
 
 from loguru import logger
 
@@ -22,7 +21,6 @@ from bundle_analyzer.ai.prompts.log_analysis import (
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import CrashLoopContext, LogDiagnosis, LogIntelligence, PodLogIntelligence
 from bundle_analyzer.security.scrubber import BundleScrubber
-
 
 # Maximum number of concurrent AI calls to avoid overwhelming the API.
 _MAX_CONCURRENT = 3

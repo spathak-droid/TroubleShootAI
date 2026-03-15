@@ -6,7 +6,7 @@ using regex-based date extraction from PEM certificate data.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import PredictedFailure
@@ -68,7 +68,7 @@ def predict_cert_expiry(index: BundleIndex) -> list[PredictedFailure]:
                 if expiry is None:
                     continue
 
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 remaining = expiry - now
                 remaining_seconds = int(remaining.total_seconds())
 
@@ -135,7 +135,7 @@ def predict_cert_expiry_single(
         if expiry is None:
             continue
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         remaining = expiry - now
         if remaining.days < 30:
             predictions.append(

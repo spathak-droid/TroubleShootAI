@@ -24,7 +24,7 @@ class ConfigScanner:
     the bundle. Also checks Services for empty Endpoints.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[ConfigIssue]:
+    async def scan(self, index: BundleIndex) -> list[ConfigIssue]:
         """Scan all pods and services for config reference issues.
 
         Args:
@@ -74,7 +74,7 @@ class ConfigScanner:
         return issues
 
     def _get_resource_names(
-        self, index: "BundleIndex", namespace: str, resource_type: str,
+        self, index: BundleIndex, namespace: str, resource_type: str,
     ) -> set[str]:
         """Get a set of resource names for a given type in a namespace."""
         names: set[str] = set()
@@ -233,7 +233,7 @@ class ConfigScanner:
 
         return issues
 
-    def _check_services(self, index: "BundleIndex", namespace: str) -> list[ConfigIssue]:
+    def _check_services(self, index: BundleIndex, namespace: str) -> list[ConfigIssue]:
         """Check services for empty endpoints in a namespace."""
         issues: list[ConfigIssue] = []
 
@@ -278,7 +278,7 @@ class ConfigScanner:
         return issues
 
     def _read_resources(
-        self, index: "BundleIndex", namespace: str, resource_type: str,
+        self, index: BundleIndex, namespace: str, resource_type: str,
     ) -> list[dict]:
         """Generic helper to read a list of resources."""
         try:

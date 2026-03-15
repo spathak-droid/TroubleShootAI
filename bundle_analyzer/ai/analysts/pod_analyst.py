@@ -17,13 +17,13 @@ from loguru import logger
 from bundle_analyzer.ai.client import BundleAnalyzerClient
 from bundle_analyzer.ai.prompts.pod import POD_SYSTEM_PROMPT, build_pod_user_prompt
 from bundle_analyzer.bundle.indexer import BundleIndex
-from bundle_analyzer.security.scrubber import BundleScrubber
 from bundle_analyzer.models import (
     AnalystOutput,
     Evidence,
     Finding,
     Fix,
 )
+from bundle_analyzer.security.scrubber import BundleScrubber
 
 
 class PodAnalyst:

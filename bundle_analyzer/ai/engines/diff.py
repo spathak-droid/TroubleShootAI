@@ -11,10 +11,8 @@ from typing import Any, Literal
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from bundle_analyzer.bundle.extractor import BundleExtractor
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import PodIssue, TriageResult
-from bundle_analyzer.triage.engine import TriageEngine
 
 
 class DiffFinding(BaseModel):

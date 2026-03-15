@@ -23,7 +23,7 @@ class DeploymentScanner:
     multiple ReplicaSets indicating a stuck rollout.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[DeploymentIssue]:
+    async def scan(self, index: BundleIndex) -> list[DeploymentIssue]:
         """Scan all deployments and return detected issues.
 
         Args:
@@ -51,13 +51,13 @@ class DeploymentScanner:
         logger.info("DeploymentScanner found {} issues", len(issues))
         return issues
 
-    def _get_namespaces(self, index: "BundleIndex") -> list[str]:
+    def _get_namespaces(self, index: BundleIndex) -> list[str]:
         """Get list of namespaces from the index."""
         if hasattr(index, "namespaces"):
             return index.namespaces or []
         return []
 
-    def _read_deployments(self, index: "BundleIndex", namespace: str) -> list[dict]:
+    def _read_deployments(self, index: BundleIndex, namespace: str) -> list[dict]:
         """Read deployments for a namespace."""
         try:
             data = index.read_json(f"cluster-resources/deployments/{namespace}.json")
@@ -77,7 +77,7 @@ class DeploymentScanner:
 
     def _build_replicaset_owner_map(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespaces: list[str],
     ) -> dict[str, list[str]]:
         """Build a map of deployment -> list of active replicaset names.
@@ -108,7 +108,7 @@ class DeploymentScanner:
 
         return owner_map
 
-    def _read_replicasets(self, index: "BundleIndex", namespace: str) -> list[dict]:
+    def _read_replicasets(self, index: BundleIndex, namespace: str) -> list[dict]:
         """Read replicasets for a namespace."""
         try:
             data = index.read_json(f"cluster-resources/replicasets/{namespace}.json")

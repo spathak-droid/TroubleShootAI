@@ -28,7 +28,6 @@ from bundle_analyzer.models import (
     MissedFailurePoint,
 )
 
-
 MAX_LOG_LINES = 300
 
 

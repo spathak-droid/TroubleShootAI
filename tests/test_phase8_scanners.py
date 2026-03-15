@@ -11,7 +11,7 @@ Covers:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -22,15 +22,14 @@ from bundle_analyzer.models import (
     CrashLoopContext,
     DeploymentIssue,
     EventEscalation,
-    ExternalAnalyzerIssue,
     K8sEvent,
     NetworkPolicyIssue,
     NodeIssue,
     QuotaIssue,
     RBACIssue,
+    TriageResult,
     TroubleshootAnalysis,
     TroubleshootAnalyzerResult,
-    TriageResult,
 )
 from bundle_analyzer.triage.event_scanner import EventScanner
 from bundle_analyzer.triage.troubleshoot_scanner import TroubleshootAnalyzerScanner
@@ -334,8 +333,8 @@ class TestEventEscalation:
                 type="Warning",
                 involved_object_kind="Pod",
                 involved_object_name="test-pod",
-                first_timestamp=datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc),
-                last_timestamp=datetime(2024, 1, 15, 10, 30, tzinfo=timezone.utc),
+                first_timestamp=datetime(2024, 1, 15, 10, 0, tzinfo=UTC),
+                last_timestamp=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
                 count=15,
             ),
         ]
@@ -361,8 +360,8 @@ class TestEventEscalation:
                 type="Warning",
                 involved_object_kind="Pod",
                 involved_object_name="test-pod",
-                first_timestamp=datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc),
-                last_timestamp=datetime(2024, 1, 15, 10, 5, tzinfo=timezone.utc),
+                first_timestamp=datetime(2024, 1, 15, 10, 0, tzinfo=UTC),
+                last_timestamp=datetime(2024, 1, 15, 10, 5, tzinfo=UTC),
                 count=3,
             ),
             K8sEvent(
@@ -373,8 +372,8 @@ class TestEventEscalation:
                 type="Warning",
                 involved_object_kind="Pod",
                 involved_object_name="test-pod",
-                first_timestamp=datetime(2024, 1, 15, 10, 2, tzinfo=timezone.utc),
-                last_timestamp=datetime(2024, 1, 15, 10, 4, tzinfo=timezone.utc),
+                first_timestamp=datetime(2024, 1, 15, 10, 2, tzinfo=UTC),
+                last_timestamp=datetime(2024, 1, 15, 10, 4, tzinfo=UTC),
                 count=5,
             ),
         ]
@@ -401,8 +400,8 @@ class TestEventEscalation:
                 type="Warning",
                 involved_object_kind="Pod",
                 involved_object_name="test-pod",
-                first_timestamp=datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc),
-                last_timestamp=datetime(2024, 1, 15, 10, 5, tzinfo=timezone.utc),
+                first_timestamp=datetime(2024, 1, 15, 10, 0, tzinfo=UTC),
+                last_timestamp=datetime(2024, 1, 15, 10, 5, tzinfo=UTC),
                 count=3,
             ),
         ]

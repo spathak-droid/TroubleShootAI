@@ -25,7 +25,7 @@ class EventScanner:
     and returns them sorted by lastTimestamp (most recent first).
     """
 
-    async def scan(self, index: "BundleIndex") -> list[K8sEvent]:
+    async def scan(self, index: BundleIndex) -> list[K8sEvent]:
         """Scan all events and return Warning events sorted by time.
 
         Args:

@@ -12,30 +12,30 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from bundle_analyzer.models import TriageResult
+from bundle_analyzer.triage.anomaly_detector import AnomalyDetector
+from bundle_analyzer.triage.change_correlator import ChangeCorrelator
 from bundle_analyzer.triage.config_scanner import ConfigScanner
+from bundle_analyzer.triage.coverage_analyzer import CoverageAnalyzer
 from bundle_analyzer.triage.crashloop_analyzer import CrashLoopAnalyzer
+from bundle_analyzer.triage.dependency_scanner import DependencyScanner
 from bundle_analyzer.triage.deployment_scanner import DeploymentScanner
+from bundle_analyzer.triage.dns_scanner import DNSScanner
 from bundle_analyzer.triage.drift_scanner import DriftScanner
 from bundle_analyzer.triage.event_scanner import EventScanner
+from bundle_analyzer.triage.ingress_scanner import IngressScanner
+from bundle_analyzer.triage.log_intelligence import LogIntelligenceEngine
 from bundle_analyzer.triage.network_policy_scanner import NetworkPolicyScanner
 from bundle_analyzer.triage.node_scanner import NodeScanner
 from bundle_analyzer.triage.pod_scanner import PodScanner
-from bundle_analyzer.triage.ingress_scanner import IngressScanner
 from bundle_analyzer.triage.probe_scanner import ProbeScanner
 from bundle_analyzer.triage.quota_scanner import QuotaScanner
 from bundle_analyzer.triage.rbac_scanner import RBACScanner
 from bundle_analyzer.triage.resource_scanner import ResourceScanner
+from bundle_analyzer.triage.scheduling_scanner import SchedulingScanner
 from bundle_analyzer.triage.silence_scanner import SilenceScanner
 from bundle_analyzer.triage.storage_scanner import StorageScanner
-from bundle_analyzer.triage.dns_scanner import DNSScanner
-from bundle_analyzer.triage.scheduling_scanner import SchedulingScanner
 from bundle_analyzer.triage.tls_scanner import TLSScanner
 from bundle_analyzer.triage.troubleshoot_scanner import TroubleshootAnalyzerScanner
-from bundle_analyzer.triage.coverage_analyzer import CoverageAnalyzer
-from bundle_analyzer.triage.anomaly_detector import AnomalyDetector
-from bundle_analyzer.triage.dependency_scanner import DependencyScanner
-from bundle_analyzer.triage.change_correlator import ChangeCorrelator
-from bundle_analyzer.triage.log_intelligence import LogIntelligenceEngine
 
 if TYPE_CHECKING:
     from bundle_analyzer.bundle.indexer import BundleIndex
@@ -85,7 +85,7 @@ class TriageEngine:
         self.change_correlator = ChangeCorrelator()
         self.log_intelligence_engine = LogIntelligenceEngine()
 
-    async def run(self, index: "BundleIndex") -> TriageResult:
+    async def run(self, index: BundleIndex) -> TriageResult:
         """Run all scanners in parallel and aggregate results.
 
         Args:
@@ -275,7 +275,7 @@ class TriageEngine:
 
     @staticmethod
     def _collect_pods_of_interest(
-        index: "BundleIndex",
+        index: BundleIndex,
         critical_pods: list,
         warning_pods: list,
         crash_contexts: list,

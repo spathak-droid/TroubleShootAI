@@ -10,9 +10,8 @@ from __future__ import annotations
 import math
 import re
 import string
-from loguru import logger
-from bundle_analyzer.security.models import RedactionEntry
 
+from bundle_analyzer.security.models import RedactionEntry
 
 # Known false positive patterns — high entropy but NOT secrets
 _UUID_RE = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.I)
@@ -163,7 +162,7 @@ class EntropyDetector:
         # Process from right to left to preserve indices
         result = text
         for start, end, entropy in sorted(detections, key=lambda d: d[0], reverse=True):
-            token = text[start:end]
+            text[start:end]
             replacement = "[REDACTED:high-entropy]"
             result = result[:start] + replacement + result[end:]
             entries.append(RedactionEntry(

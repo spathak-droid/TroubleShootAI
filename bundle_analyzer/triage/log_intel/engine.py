@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -51,7 +51,7 @@ class LogIntelligenceEngine:
 
     async def scan(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         pods_of_interest: list[dict],
     ) -> dict[str, PodLogIntelligence]:
         """Scan logs for all pods of interest and produce intelligence.
@@ -90,7 +90,7 @@ class LogIntelligenceEngine:
 
     async def _scan_pod(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         pod: dict,
     ) -> PodLogIntelligence:
         """Scan all containers in a single pod."""
@@ -152,7 +152,7 @@ class LogIntelligenceEngine:
 
     def _scan_container_sync(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         pod_name: str,
         container_name: str,
@@ -206,7 +206,7 @@ class LogIntelligenceEngine:
             level_counts[lvl] += 1
 
             # Match against failure patterns
-            for category, label, regex, sev in FAILURE_PATTERNS:
+            for category, label, regex, _sev in FAILURE_PATTERNS:
                 if regex.search(line):
                     pattern_counts[label] += 1
                     if label not in pattern_samples:

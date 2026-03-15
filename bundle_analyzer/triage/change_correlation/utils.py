@@ -6,7 +6,7 @@ time-delta formatting helpers used across the change correlation package.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def parse_k8s_timestamp(ts: str | None) -> datetime | None:
@@ -43,11 +43,11 @@ def in_window(ts: datetime, cutoff: datetime, before: datetime) -> bool:
         True if ``cutoff <= ts <= before``.
     """
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
+        ts = ts.replace(tzinfo=UTC)
     if cutoff.tzinfo is None:
-        cutoff = cutoff.replace(tzinfo=timezone.utc)
+        cutoff = cutoff.replace(tzinfo=UTC)
     if before.tzinfo is None:
-        before = before.replace(tzinfo=timezone.utc)
+        before = before.replace(tzinfo=UTC)
 
     return cutoff <= ts <= before
 

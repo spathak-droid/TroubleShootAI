@@ -23,7 +23,11 @@ from .dedup import deduplicate
 from .deployment_helpers import parse_memory
 from .issue_walkers import (
     walk_deployment_issue as _walk_deployment_issue,
+)
+from .issue_walkers import (
     walk_node_issue as _walk_node_issue,
+)
+from .issue_walkers import (
     walk_pod_issue as _walk_pod_issue,
 )
 

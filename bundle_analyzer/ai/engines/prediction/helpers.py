@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import base64
 import re
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from loguru import logger
 
@@ -52,7 +51,7 @@ def get_all_nodes(index: BundleIndex) -> list[dict]:
     return nodes
 
 
-def parse_k8s_memory(value: str | None) -> Optional[int]:
+def parse_k8s_memory(value: str | None) -> int | None:
     """Parse Kubernetes memory quantity string to bytes.
 
     Handles Ki, Mi, Gi, Ti, and plain integer (bytes) formats.
@@ -95,7 +94,7 @@ def parse_k8s_memory(value: str | None) -> Optional[int]:
         return None
 
 
-def parse_cert_expiry(b64_cert: str) -> Optional[datetime]:
+def parse_cert_expiry(b64_cert: str) -> datetime | None:
     """Extract the NotAfter date from a base64-encoded X.509 certificate.
 
     Uses a regex-based approach to find the expiry without requiring
@@ -122,7 +121,7 @@ def parse_cert_expiry(b64_cert: str) -> Optional[datetime]:
             # Common OpenSSL format: "Mar 15 12:00:00 2025 GMT"
             try:
                 return datetime.strptime(date_str, "%b %d %H:%M:%S %Y %Z").replace(
-                    tzinfo=timezone.utc
+                    tzinfo=UTC
                 )
             except ValueError:
                 pass

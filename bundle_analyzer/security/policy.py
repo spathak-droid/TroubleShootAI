@@ -1,10 +1,10 @@
 """Policy engine — determines scrub level per source type and policy mode."""
 
 from __future__ import annotations
-from typing import Literal
-from loguru import logger
-from bundle_analyzer.security.models import SecurityPolicy
 
+from typing import Literal
+
+from bundle_analyzer.security.models import SecurityPolicy
 
 SourceType = Literal[
     "pod_spec", "container_log", "node_json", "event",

@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bundle_analyzer.security.audit import AuditLogger
 from bundle_analyzer.security.entropy import EntropyDetector
 from bundle_analyzer.security.kubernetes import KubernetesStructuralScrubber
@@ -22,7 +20,6 @@ from bundle_analyzer.security.patterns import PatternDetector
 from bundle_analyzer.security.policy import PolicyEngine
 from bundle_analyzer.security.prompt_guard import PromptInjectionGuard
 from bundle_analyzer.security.scrubber import BundleScrubber
-
 
 # ── Pattern detection tests ─────────────────────────────────────────
 

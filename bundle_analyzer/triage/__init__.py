@@ -1,8 +1,11 @@
 """Triage subsystem — deterministic scanners that run before AI analysis."""
 
+from bundle_analyzer.triage.anomaly_detector import AnomalyDetector
+from bundle_analyzer.triage.change_correlator import ChangeCorrelator
 from bundle_analyzer.triage.config_scanner import ConfigScanner
 from bundle_analyzer.triage.coverage_analyzer import CoverageAnalyzer
 from bundle_analyzer.triage.crashloop_analyzer import CrashLoopAnalyzer
+from bundle_analyzer.triage.dependency_scanner import DependencyScanner
 from bundle_analyzer.triage.deployment_scanner import DeploymentScanner
 from bundle_analyzer.triage.drift_scanner import DriftScanner
 from bundle_analyzer.triage.engine import TriageEngine
@@ -17,9 +20,6 @@ from bundle_analyzer.triage.rbac_scanner import RBACScanner
 from bundle_analyzer.triage.resource_scanner import ResourceScanner
 from bundle_analyzer.triage.silence_scanner import SilenceScanner
 from bundle_analyzer.triage.storage_scanner import StorageScanner
-from bundle_analyzer.triage.anomaly_detector import AnomalyDetector
-from bundle_analyzer.triage.dependency_scanner import DependencyScanner
-from bundle_analyzer.triage.change_correlator import ChangeCorrelator
 
 __all__ = [
     "TriageEngine",

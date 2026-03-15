@@ -123,7 +123,7 @@ class CoverageAnalyzer:
     if the bundle does not contain any CronJob data.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[CoverageGap]:
+    async def scan(self, index: BundleIndex) -> list[CoverageGap]:
         """Scan the bundle for coverage gaps.
 
         Checks each uncovered area definition against the bundle filesystem

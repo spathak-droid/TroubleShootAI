@@ -119,7 +119,7 @@ class CrashLoopAnalyzer:
     reasons, and classifies the crash pattern.
     """
 
-    async def scan(self, index: "BundleIndex") -> list[CrashLoopContext]:
+    async def scan(self, index: BundleIndex) -> list[CrashLoopContext]:
         """Analyze all crash-looping containers in the bundle.
 
         Args:
@@ -148,7 +148,7 @@ class CrashLoopAnalyzer:
         return contexts
 
     def _analyze_pod(
-        self, pod: dict, index: "BundleIndex",
+        self, pod: dict, index: BundleIndex,
     ) -> list[CrashLoopContext]:
         """Analyze a single pod for crash-looping containers.
 

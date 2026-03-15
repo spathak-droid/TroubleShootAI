@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-
 from loguru import logger
+
+# Max seconds to wait for the next streaming chunk before giving up
+_STREAM_CHUNK_TIMEOUT = 60
 
 from bundle_analyzer.api.deps import get_session
 from bundle_analyzer.api.schemas import InterviewRequest, InterviewResponse
@@ -132,9 +135,22 @@ async def ask_question_stream(
 
     async def event_generator():
         try:
-            async for chunk in interview.ask_stream(request.question):
-                data = json.dumps({"token": chunk})
-                yield f"data: {data}\n\n"
+            stream_iter = interview.ask_stream(request.question).__aiter__()
+            while True:
+                try:
+                    chunk = await asyncio.wait_for(
+                        stream_iter.__anext__(),
+                        timeout=_STREAM_CHUNK_TIMEOUT,
+                    )
+                    data = json.dumps({"token": chunk})
+                    yield f"data: {data}\n\n"
+                except StopAsyncIteration:
+                    break
+                except asyncio.TimeoutError:
+                    logger.warning("Stream chunk timed out after {}s", _STREAM_CHUNK_TIMEOUT)
+                    data = json.dumps({"token": "\n\n*[Response timed out]*"})
+                    yield f"data: {data}\n\n"
+                    break
             yield "data: [DONE]\n\n"
         except Exception as exc:
             logger.error("Stream error: {}", exc)

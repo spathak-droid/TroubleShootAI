@@ -50,7 +50,7 @@ class DNSScanner:
     - CoreDNS Corefile configuration errors in coredns pod logs
     """
 
-    async def scan(self, index: "BundleIndex") -> list[DNSIssue]:
+    async def scan(self, index: BundleIndex) -> list[DNSIssue]:
         """Scan the bundle for DNS-related issues.
 
         Args:
@@ -69,7 +69,7 @@ class DNSScanner:
         logger.info("DNSScanner found {} issues", len(issues))
         return issues
 
-    async def _scan_coredns_pods(self, index: "BundleIndex") -> list[DNSIssue]:
+    async def _scan_coredns_pods(self, index: BundleIndex) -> list[DNSIssue]:
         """Detect CoreDNS pods in kube-system that are failing or not ready."""
         issues: list[DNSIssue] = []
 
@@ -150,7 +150,7 @@ class DNSScanner:
 
         return issues
 
-    async def _scan_dns_resolution_errors(self, index: "BundleIndex") -> list[DNSIssue]:
+    async def _scan_dns_resolution_errors(self, index: BundleIndex) -> list[DNSIssue]:
         """Scan pod logs across all namespaces for DNS resolution errors."""
         issues: list[DNSIssue] = []
 
@@ -192,7 +192,7 @@ class DNSScanner:
 
     async def _check_log_for_dns_errors(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         pod_name: str,
         container_name: str,
@@ -249,7 +249,7 @@ class DNSScanner:
 
         return issues
 
-    async def _scan_missing_endpoints(self, index: "BundleIndex") -> list[DNSIssue]:
+    async def _scan_missing_endpoints(self, index: BundleIndex) -> list[DNSIssue]:
         """Find services with empty endpoint lists indicating DNS will resolve but traffic fails."""
         issues: list[DNSIssue] = []
 
@@ -326,7 +326,7 @@ class DNSScanner:
 
         return issues
 
-    async def _scan_coredns_config(self, index: "BundleIndex") -> list[DNSIssue]:
+    async def _scan_coredns_config(self, index: BundleIndex) -> list[DNSIssue]:
         """Look for CoreDNS configuration errors in coredns pod logs."""
         issues: list[DNSIssue] = []
 
@@ -372,7 +372,7 @@ class DNSScanner:
 
     async def _check_coredns_log_for_config_errors(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         namespace: str,
         pod_name: str,
         container_name: str,

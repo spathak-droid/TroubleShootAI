@@ -6,7 +6,7 @@ strength, find best-matching failures, and generate human-readable explanations.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 
 from bundle_analyzer.triage.change_correlation.models import (
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 def correlate_changes(
     changes: list[ChangeEvent],
-    triage: "TriageResult",
+    triage: TriageResult,
     failure_onset: datetime,
 ) -> list[ChangeCorrelation]:
     """Correlate detected changes with triage failures.
@@ -53,11 +53,11 @@ def correlate_changes(
     for change in changes:
         change_ts = change.timestamp
         if change_ts.tzinfo is None:
-            change_ts = change_ts.replace(tzinfo=timezone.utc)
+            change_ts = change_ts.replace(tzinfo=UTC)
 
         onset = failure_onset
         if onset.tzinfo is None:
-            onset = onset.replace(tzinfo=timezone.utc)
+            onset = onset.replace(tzinfo=UTC)
 
         delta = (onset - change_ts).total_seconds()
         if delta < 0:
@@ -103,7 +103,7 @@ def correlate_changes(
 
 
 def build_failure_descriptions(
-    triage: "TriageResult",
+    triage: TriageResult,
 ) -> list[tuple[str, str, str]]:
     """Build (namespace, resource, description) tuples from triage.
 

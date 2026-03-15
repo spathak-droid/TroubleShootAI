@@ -25,7 +25,7 @@ def _make_key(kind: str, namespace: str, name: str) -> str:
     return f"{kind}//{name}"
 
 
-def _read_resources(index: "BundleIndex", resource_dir: str) -> list[dict[str, Any]]:
+def _read_resources(index: BundleIndex, resource_dir: str) -> list[dict[str, Any]]:
     """Read all resources of a given type from every namespace file.
 
     Handles both list-style (``{items: [...]}`` / ``[...]``) and single-object
@@ -87,7 +87,7 @@ class ResourceGraph:
     # ------------------------------------------------------------------
 
     @classmethod
-    async def build(cls, index: "BundleIndex") -> "ResourceGraph":
+    async def build(cls, index: BundleIndex) -> ResourceGraph:
         """Build the full resource dependency graph from a bundle index.
 
         Reads every supported resource type and creates edges for ownership,
@@ -105,7 +105,7 @@ class ResourceGraph:
         return await asyncio.to_thread(cls._build_sync, index)
 
     @classmethod
-    def _build_sync(cls, index: "BundleIndex") -> "ResourceGraph":
+    def _build_sync(cls, index: BundleIndex) -> ResourceGraph:
         """Blocking helper that reads resources and wires edges."""
         graph = cls()
 

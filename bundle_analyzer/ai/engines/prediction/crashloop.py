@@ -6,8 +6,6 @@ restart count thresholds and backoff cap analysis.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import PredictedFailure, TriageResult
 
@@ -68,7 +66,7 @@ def predict_crashloop_permanent(
 
 def predict_crashloop_permanent_single(
     pod_json: dict,
-) -> Optional[PredictedFailure]:
+) -> PredictedFailure | None:
     """Predict crash loop permanence for a single pod.
 
     Args:

@@ -11,7 +11,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Literal
 
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from bundle_analyzer.bundle.indexer import BundleIndex
@@ -49,8 +49,8 @@ class AnomalyDetector:
 
     async def scan(
         self,
-        index: "BundleIndex",
-        triage: "TriageResult",
+        index: BundleIndex,
+        triage: TriageResult,
     ) -> list[PodAnomaly]:
         """Scan for cross-pod anomalies between failing and healthy pods.
 
@@ -129,7 +129,7 @@ class AnomalyDetector:
         return f"{ns}/{name}"
 
     @staticmethod
-    def _build_failing_set(triage: "TriageResult") -> set[str]:
+    def _build_failing_set(triage: TriageResult) -> set[str]:
         """Extract the set of failing pod IDs from triage results."""
         failing: set[str] = set()
         for issue in triage.critical_pods + triage.warning_pods:

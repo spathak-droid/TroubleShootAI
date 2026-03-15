@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import html
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from bundle_analyzer.api.session import BundleSession
@@ -90,7 +90,7 @@ def build_html_report(analysis: Any, triage: Any, session: BundleSession) -> str
 <h1>Bundle Analysis Report</h1>
 <p class="meta">
     Bundle: {h(session.filename)} &mdash; Session: {h(session.id)}<br>
-    Generated: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")}<br>
+    Generated: {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")}<br>
     {h(analysis.cluster_summary)}
 </p>
 
@@ -499,7 +499,7 @@ def _build_dep_section(triage: Any, h: Any) -> str:
         return ""
     rows = ""
     for dep in broken_deps:
-        sev = getattr(dep, "severity", "info")
+        getattr(dep, "severity", "info")
         rows += f"""<tr>
             <td>{h(getattr(dep, 'source_pod', ''))}</td>
             <td>{h(getattr(dep, 'target_service', ''))}</td>

@@ -78,7 +78,7 @@ class DependencyScanner:
     in the bundle to determine health status.
     """
 
-    async def scan(self, index: "BundleIndex") -> DependencyMap:
+    async def scan(self, index: BundleIndex) -> DependencyMap:
         """Scan all pods for service dependencies and check health.
 
         Args:
@@ -210,7 +210,7 @@ class DependencyScanner:
     def _check_service_health(
         self,
         dep: ServiceDependency,
-        index: "BundleIndex",
+        index: BundleIndex,
         service_cache: dict[str, set[str]],
         endpoint_cache: dict[str, dict[str, bool]],
     ) -> ServiceDependency:
@@ -374,7 +374,7 @@ class DependencyScanner:
 
         return True, "Endpoints exist with ready addresses"
 
-    def _get_service_names(self, index: "BundleIndex", namespace: str) -> set[str]:
+    def _get_service_names(self, index: BundleIndex, namespace: str) -> set[str]:
         """Get all service names in a namespace from the bundle.
 
         Args:
@@ -393,7 +393,7 @@ class DependencyScanner:
         return names
 
     def _get_endpoint_health(
-        self, index: "BundleIndex", namespace: str,
+        self, index: BundleIndex, namespace: str,
     ) -> dict[str, bool]:
         """Build a map of service_name -> has_ready_addresses for a namespace.
 
@@ -419,7 +419,7 @@ class DependencyScanner:
 
     @staticmethod
     def _read_resources(
-        index: "BundleIndex", namespace: str, resource_type: str,
+        index: BundleIndex, namespace: str, resource_type: str,
     ) -> list[dict]:
         """Read a list of Kubernetes resources from the bundle.
 

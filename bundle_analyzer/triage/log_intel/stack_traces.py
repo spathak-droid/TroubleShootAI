@@ -14,7 +14,6 @@ from bundle_analyzer.models import StackTraceGroup
 
 from .constants import MAX_TRACE_GROUPS
 
-
 # ── Start patterns per language ───────────────────────────────────────
 
 _TRACE_START: list[tuple[str, re.Pattern[str]]] = [

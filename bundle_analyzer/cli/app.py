@@ -11,7 +11,6 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 import typer
 from dotenv import load_dotenv
@@ -41,13 +40,13 @@ def analyze(
     bundle_path: Path = typer.Argument(
         ..., help="Path to support bundle .tar.gz or extracted directory"
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None, "--output", "-o", help="Save HTML report to file"
     ),
-    context: Optional[Path] = typer.Option(
+    context: Path | None = typer.Option(
         None, "--context", help="ISV context file (Helm values, README)"
     ),
-    compare: Optional[Path] = typer.Option(
+    compare: Path | None = typer.Option(
         None, "--compare", help="Second bundle for diff analysis"
     ),
     verbose: bool = typer.Option(
@@ -128,7 +127,7 @@ def serve(
     dev: bool = typer.Option(
         False, "--dev", help="Enable CORS for localhost:3000 (Next.js dev server)"
     ),
-    bundle_path: Optional[Path] = typer.Argument(
+    bundle_path: Path | None = typer.Argument(
         None, help="Optional bundle path to pre-load"
     ),
 ) -> None:
@@ -140,7 +139,7 @@ def serve(
             "[red]Error:[/red] uvicorn not installed.\n"
             "  [dim]pip install uvicorn[standard][/dim]"
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     display_host = host if host != "0.0.0.0" else "localhost"
     console.print(

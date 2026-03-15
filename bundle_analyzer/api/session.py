@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -55,7 +55,7 @@ class BundleSession:
         self.id: str = session_id
         self.filename: str = filename
         self.status: str = "uploaded"
-        self.uploaded_at: datetime = datetime.now(timezone.utc)
+        self.uploaded_at: datetime = datetime.now(UTC)
         self.bundle_path: Path | None = bundle_path
         self.extracted_root: Path | None = None
         self.index: BundleIndex | None = None

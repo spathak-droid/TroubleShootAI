@@ -6,6 +6,7 @@ with answers grounded in bundle evidence rather than general knowledge.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 
 from loguru import logger
@@ -75,7 +76,7 @@ class InterviewSession:
             response = await self.client.complete(
                 system=INTERVIEW_SYSTEM_PROMPT,
                 user=user_message,
-                max_tokens=2048,
+                max_tokens=8192,
                 temperature=0.2,
             )
             self.history.append({"role": "assistant", "content": response})
@@ -118,7 +119,7 @@ class InterviewSession:
             async for chunk in self.client.stream(
                 system=INTERVIEW_SYSTEM_PROMPT,
                 user=user_message,
-                max_tokens=2048,
+                max_tokens=8192,
                 temperature=0.2,
             ):
                 full_response.append(chunk)
@@ -126,6 +127,16 @@ class InterviewSession:
 
             response_text = "".join(full_response)
             self.history.append({"role": "assistant", "content": response_text})
+        except asyncio.TimeoutError:
+            response_text = "".join(full_response)
+            if response_text:
+                response_text += "\n\n*[Response timed out — ask a follow-up for more details]*"
+                self.history.append({"role": "assistant", "content": response_text})
+                yield "\n\n*[Response timed out — ask a follow-up for more details]*"
+            else:
+                error_msg = "AI response timed out. Please try again."
+                self.history.append({"role": "assistant", "content": error_msg})
+                yield error_msg
         except Exception as exc:
             error_msg = f"Unable to process question: {exc}"
             logger.error("Interview streaming failed: {}", exc)

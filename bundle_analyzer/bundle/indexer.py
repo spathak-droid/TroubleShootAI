@@ -4,6 +4,6 @@ All imports of ``from bundle_analyzer.bundle.indexer import BundleIndex``
 continue to work unchanged.
 """
 
-from bundle_analyzer.bundle.indexing import BundleIndex, REDACTED_MARKER
+from bundle_analyzer.bundle.indexing import REDACTED_MARKER, BundleIndex
 
 __all__ = ["BundleIndex", "REDACTED_MARKER"]

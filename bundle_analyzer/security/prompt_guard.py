@@ -11,7 +11,9 @@ the diagnostic value of the content.
 from __future__ import annotations
 
 import re
+
 from loguru import logger
+
 from bundle_analyzer.security.models import RedactionEntry
 
 

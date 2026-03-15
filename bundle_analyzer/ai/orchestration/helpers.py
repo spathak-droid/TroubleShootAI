@@ -7,7 +7,8 @@ for finding resources, building reports, and converting values.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from loguru import logger
 
@@ -218,7 +219,7 @@ def timeline_from_triage(triage: TriageResult) -> list[HistoricalEvent]:
 
 
 async def report_progress(
-    callback: Optional[Callable[..., Any]],
+    callback: Callable[..., Any] | None,
     stage: str,
     pct: float,
     message: str,

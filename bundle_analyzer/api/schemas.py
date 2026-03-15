@@ -7,13 +7,13 @@ HTTP request/response semantics and WebSocket message framing.
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class AnalysisStatusEnum(str, Enum):
+class AnalysisStatusEnum(StrEnum):
     """Status of a bundle through the analysis pipeline."""
 
     uploaded = "uploaded"

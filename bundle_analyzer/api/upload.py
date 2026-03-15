@@ -10,8 +10,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import HTTPException
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 from loguru import logger
 
 # 64KB chunk size for streaming writes
@@ -90,7 +89,7 @@ async def save_upload(upload: UploadFile) -> Path:
                         status_code=413,
                         detail=f"Upload exceeds MAX_UPLOAD_MB={max_upload_mb}",
                     )
-    except IOError as exc:
+    except OSError as exc:
         logger.error("Failed to save upload to {}: {}", dest, exc)
         # Clean up partial file
         if dest.exists():

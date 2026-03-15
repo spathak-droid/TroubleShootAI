@@ -6,8 +6,6 @@ certificates, replicas) and returns a unified list of predicted failures.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from loguru import logger
 from pydantic import BaseModel
 
@@ -21,7 +19,7 @@ class Prediction(BaseModel):
     prediction_type: str
     resource: str
     eta_human: str  # "~2 hours", "~3 days", "unknown"
-    eta_seconds: Optional[int] = None
+    eta_seconds: int | None = None
     confidence: float
     basis: str  # how this was calculated
     action_required: str

@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bundle_analyzer.ai.prompts.log_analysis import (
     LOG_ANALYSIS_SYSTEM_PROMPT,
     build_log_analysis_prompt,
 )
 from bundle_analyzer.models import LogDiagnosis
-
 
 # ---------------------------------------------------------------------------
 # System prompt constant tests

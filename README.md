@@ -1,74 +1,207 @@
-# Replicated Troubleshoot
+# TroubleShootAI
 
-Replicated Troubleshoot is a framework for collecting, redacting, and analyzing highly customizable diagnostic information about a Kubernetes cluster. Troubleshoot specs are created by 3rd-party application developers/maintainers and run by cluster operators in the initial and ongoing operation of those applications.
+AI-powered Kubernetes support bundle forensics. Upload a support bundle, get instant root cause analysis with correlated timelines and actionable fix recommendations — all grounded in evidence from your actual cluster data.
 
-Troubleshoot provides two CLI tools as kubectl plugins (using [Krew](https://krew.dev)): `kubectl preflight` and `kubectl support-bundle`. Preflight provides pre-installation cluster conformance testing and validation (preflight checks) and support-bundle provides post-installation troubleshooting and diagnostics (support bundles).
+**Live:** [troubleshootai.vercel.app](https://troubleshootai.vercel.app) (frontend) • Railway backend
 
-To know more about troubleshoot, please visit: https://troubleshoot.sh/
+## What It Does
 
-## Preflight Checks
-Preflight checks are an easy-to-run set of conformance tests that can be written to verify that specific requirements in a cluster are met.
+TroubleShootAI takes a Kubernetes support bundle (`.tar.gz` from [Replicated Troubleshoot](https://troubleshoot.sh/), kubectl, or custom collectors) and runs a two-stage analysis:
 
-To run a sample preflight check from a sample application, install the preflight kubectl plugin:
+1. **Deterministic Triage** — 24 parallel scanners detect 20+ issue categories using pattern matching. No tokens spent on what regex can catch.
+2. **AI Root Cause Analysis** — Claude receives the triage output (never raw files) and performs cross-resource correlation, temporal archaeology, and hypothesis generation.
 
-```
-curl https://krew.sh/preflight | bash
-```
- and run, where https://preflight.replicated.com provides an **example** preflight spec:
+The result: severity-ranked findings with evidence citations, a reconstructed failure timeline, change correlation, anomaly detection, and an interactive Q&A interface.
 
-```
-kubectl preflight https://preflight.replicated.com
-```
+## Key Features
 
-**NOTE** this is an example. Do **not** use to validate real scenarios.
+| Feature | Description |
+|---------|-------------|
+| **24 Triage Scanners** | Pod failures, crash loops, OOMKills, image pull errors, node conditions, deployment issues, config drift, RBAC errors, resource quotas, network policies, DNS, TLS/certificates, scheduling failures, probe misconfigs, storage issues, ingress errors, log intelligence, anomaly detection, dependency analysis, change correlation, coverage gaps, silence signals |
+| **Multi-Analyst AI Pipeline** | Specialized analysts (pod, node, config, log) run in parallel, coordinated by an orchestrator that builds a dynamic work tree based on triage findings |
+| **Temporal Archaeology** | Reconstructs failure timelines by mining timestamps from events, conditions, pod transitions, and deployment changes |
+| **Change Correlation** | Detects config updates, image version bumps, and resource limit changes that preceded failures |
+| **Anomaly Detection** | Compares failing pods against healthy ones in the same deployment to spot divergences |
+| **Interactive Investigation** | Ask follow-up questions in natural language with full bundle context |
+| **Uncertainty Reporting** | Reports what it couldn't determine — missing data, ambiguous signals, areas needing manual investigation |
+| **Evidence Citations** | Every finding cites specific files, log lines, and resource specs. No hallucinated diagnoses |
+| **7-Layer Security** | Pre-ingestion scrubbing, pre-LLM scrubbing, structural K8s scrubbers, entropy-based secret detection, prompt injection defense, audit logging, configurable security policies |
 
-For more details on creating the custom resource files that drive preflight checks, visit [creating preflight checks](https://troubleshoot.sh/docs/preflight/introduction/).
-
-
-## Support Bundle
-A support bundle is an archive that's created in-cluster, by collecting logs and cluster information, and executing specified commands (including redaction of sensitive information). After creating a support bundle, the cluster operator will normally deliver it to the 3rd-party application vendor for analysis and disconnected debugging. Another Replicated project, [KOTS](https://github.com/replicatedhq/kots), provides k8s apps an in-cluster UI for processing support bundles and viewing analyzers (as well as support bundle collection).
-
-To collect a sample support bundle, install the troubleshoot kubectl plugin:
-
-```
-curl https://krew.sh/support-bundle | bash
-```
- and run, where https://support-bundle.replicated.com provides an **example** support bundle spec:
+## Architecture
 
 ```
-kubectl support-bundle https://support-bundle.replicated.com
+Bundle Upload (.tar.gz, up to 500MB+)
+    │  ← Streaming extraction (never fully loaded into memory)
+    ▼
+┌─────────────────────────────────────────────┐
+│  Triage Engine (24 scanners in parallel)    │
+│  Pod · Node · Deployment · Event · Config   │
+│  CrashLoop · RBAC · DNS · TLS · Storage     │
+│  Network · Scheduling · Probe · Ingress     │
+│  Drift · Quota · Resource · Silence         │
+│  Log Intelligence · Anomaly · Dependency    │
+│  Change Correlator · Coverage · Troubleshoot│
+└─────────────┬───────────────────────────────┘
+              │  ← TriageResult (structured findings)
+              ▼
+┌─────────────────────────────────────────────┐
+│  Security Layer (7-layer scrubbing)         │
+│  Pattern redaction · Entropy detection      │
+│  K8s structural scrubbers · Prompt guards   │
+│  Audit logging · Policy engine              │
+└─────────────┬───────────────────────────────┘
+              │  ← Scrubbed data only
+              ▼
+┌─────────────────────────────────────────────┐
+│  AI Orchestrator                            │
+│  PodAnalyst · NodeAnalyst · ConfigAnalyst   │
+│  LogAnalyst · Temporal Archaeology          │
+│  Prediction Engine · Synthesis              │
+└─────────────┬───────────────────────────────┘
+              │  ← AnalysisResult (structured JSON)
+              ▼
+┌─────────────────────────────────────────────┐
+│  Frontend Dashboard                         │
+│  Findings · Validation · Timeline · Q&A     │
+│  Real-time WebSocket progress updates       │
+└─────────────────────────────────────────────┘
 ```
 
-**NOTE** this is an example. Do **not** use to validate real scenarios.
+### Tech Stack
 
-For more details on creating the custom resource files that drive support-bundle collection, visit [creating collectors](https://troubleshoot.sh/docs/collect/) and [creating analyzers](https://troubleshoot.sh/docs/analyze/).
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Framer Motion, TanStack React Query, Zustand |
+| **Backend** | FastAPI, Python 3.11+, Pydantic v2, async/await throughout |
+| **AI** | Multi-provider (OpenRouter → OpenAI → Anthropic fallback), structured JSON output, exponential retry |
+| **Database** | PostgreSQL (async SQLAlchemy) — optional, works without DB |
+| **Auth** | Firebase Authentication |
+| **Real-time** | WebSocket for analysis progress streaming |
+| **Deployment** | Railway (backend) + Railway/Vercel (frontend) |
 
-And see our other tool [sbctl](https://github.com/replicatedhq/sbctl) that makes it easier to interact with support bundles using `kubectl` commands you already know
+## Quick Start
 
-# Community
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- At least one AI provider API key (`OPEN_ROUTER_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`)
 
-For questions about using Troubleshoot, how to contribute and engaging with the project in any other way, please refer to the following resources and channels.
+### Backend
 
-- [Replicated Community](https://help.replicated.com/community) forum
-- [#app-troubleshoot channel in Kubernetes Slack](https://kubernetes.slack.com/channels/app-troubleshoot)
-- [#Community meetings calendar](https://calendar.google.com/calendar/u/0?cid=Y19mMGx1aGhiZGtscGllOGo5dWpicXMwNnN1a0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t). This happen monthly but dates may change and would be kept upto date in the calendar.
+```bash
+# Clone and install
+git clone https://github.com/spathak-droid/TroubleShootAI.git
+cd TroubleShootAI
 
-# Software Bill of Materials
-A signed SBOM  that includes Troubleshoot dependencies is included in each release.
-- **troubleshoot-sbom.tgz** contains a software bill of materials for Troubleshoot.
-- **troubleshoot-sbom.tgz.sig** is the digital signature for troubleshoot-sbom.tgz
-- **key.pub** is the public key from the key pair used to sign troubleshoot-sbom.tgz
+# Create virtual environment
+python3 -m venv venv && source venv/bin/activate
 
-The following example illustrates using [cosign](https://github.com/sigstore/cosign) to verify that **troubleshoot-sbom.tgz** has
-not been tampered with.
-```sh
-$ cosign verify-blob --key key.pub --signature troubleshoot-sbom.tgz.sig troubleshoot-sbom.tgz
-Verified OK
+# Install dependencies
+pip install -e ".[dev]"
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# Run the server
+bundle-analyzer serve
+# → FastAPI running on http://localhost:8001
 ```
 
-If you were to get an error similar to the one below, it means you are verifying an SBOM signed using cosign `v1` using a newer `v2` of the binary. This version introduced [breaking changes](https://github.com/sigstore/cosign/blob/main/CHANGELOG.md#breaking-changes) which require an additional flag `--insecure-ignore-tlog=true` to successfully verify SBOMs like so.
-```sh
-$ cosign verify-blob --key key.pub --signature troubleshoot-sbom.tgz.sig troubleshoot-sbom.tgz --insecure-ignore-tlog=true
-WARNING: Skipping tlog verification is an insecure practice that lacks of transparency and auditability verification for the blob.
-Verified OK
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+# → Next.js running on http://localhost:3000
 ```
+
+### CLI Usage
+
+```bash
+# Analyze a bundle directly (outputs HTML report)
+bundle-analyzer analyze ./support-bundle.tar.gz
+
+# Start the web server
+bundle-analyzer serve
+```
+
+## Testing
+
+```bash
+# Run all 280 tests
+pip install -e ".[dev]"
+pytest
+
+# Run specific test modules
+pytest tests/test_triage.py          # Triage scanners
+pytest tests/test_security.py        # Data scrubbing
+pytest tests/test_ai_pipeline.py     # AI orchestration
+pytest tests/test_integration.py     # End-to-end pipeline
+
+# Frontend linting
+cd frontend && npm run lint
+```
+
+## Security Model
+
+All bundle data passes through a 7-layer security pipeline before reaching any LLM:
+
+1. **Pre-ingestion scrubbing** — Pattern-based redaction at upload time
+2. **Pre-LLM scrubbing** — Additional sanitization before API calls
+3. **Structural K8s scrubbers** — Understands K8s resource structure (preserves diagnostic names, redacts values)
+4. **Entropy detection** — Catches high-entropy strings (secrets that don't match known patterns)
+5. **Prompt injection defense** — Wraps untrusted log content in boundary markers
+6. **Audit logging** — Records all redactions for compliance
+7. **Security policy engine** — Configurable scrub behavior (standard/strict/allowlist)
+
+**What's preserved** (diagnostic value): env var names, K8s resource names, namespaces, labels
+**What's redacted**: env var values, API keys, passwords, internal IPs, hostnames, cluster names, high-entropy strings
+
+## Project Structure
+
+```
+TroubleShootAI/
+├── bundle_analyzer/
+│   ├── ai/                  # AI pipeline
+│   │   ├── analysts/        # Specialized analysts (pod, node, config, log)
+│   │   ├── orchestration/   # Multi-analyst coordinator
+│   │   ├── prompts/         # System & user prompt templates
+│   │   └── client.py        # Multi-provider LLM client
+│   ├── api/                 # FastAPI web server & routes
+│   ├── bundle/              # Streaming extraction & indexing
+│   ├── cli/                 # Typer CLI app
+│   ├── db/                  # PostgreSQL models & repository
+│   ├── graph/               # Dependency graph & chain walking
+│   ├── models/              # Pydantic v2 data contracts
+│   ├── rca/                 # Root cause analysis engines
+│   ├── security/            # 7-layer data protection
+│   └── triage/              # 24 parallel scanners
+├── frontend/                # Next.js 16 React app
+│   └── src/app/
+│       ├── analysis/[id]/   # Analysis dashboard (5 views)
+│       ├── login/           # Firebase auth
+│       └── about/           # Product overview
+├── tests/                   # 280 pytest tests
+│   └── fixtures/            # Sample bundle data
+└── docs/                    # Documentation
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/bundles/upload` | Upload bundle (streaming) |
+| `GET` | `/api/v1/bundles` | List bundles |
+| `POST` | `/api/v1/bundles/{id}/analyze` | Start analysis |
+| `GET` | `/api/v1/bundles/{id}/analysis` | Get analysis status |
+| `GET` | `/api/v1/bundles/{id}/triage` | Get triage results |
+| `GET` | `/api/v1/bundles/{id}/findings` | Get AI findings |
+| `POST` | `/api/v1/bundles/{id}/interview` | Interactive Q&A |
+| `WS` | `/api/v1/bundles/{id}/ws` | Real-time progress |
+| `GET` | `/api/v1/health` | Health check |
+
+## License
+
+MIT

@@ -6,7 +6,7 @@ and pod container statuses.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from bundle_analyzer.triage.change_correlation.utils import parse_k8s_timestamp
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def find_failure_onset(
-    triage: "TriageResult", index: "BundleIndex"
+    triage: TriageResult, index: BundleIndex
 ) -> datetime | None:
     """Determine the earliest failure timestamp from triage findings.
 
@@ -57,14 +57,14 @@ def find_failure_onset(
     aware: list[datetime] = []
     for c in candidates:
         if c.tzinfo is None:
-            c = c.replace(tzinfo=timezone.utc)
+            c = c.replace(tzinfo=UTC)
         aware.append(c)
 
     return min(aware)
 
 
 def get_pod_failure_time(
-    index: "BundleIndex", namespace: str, pod_name: str
+    index: BundleIndex, namespace: str, pod_name: str
 ) -> datetime | None:
     """Extract the failure timestamp from a pod's container statuses.
 

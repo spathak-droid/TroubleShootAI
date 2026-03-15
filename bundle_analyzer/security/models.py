@@ -1,8 +1,10 @@
 """Pydantic v2 models for the security & data protection layer."""
 
 from __future__ import annotations
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -27,7 +29,7 @@ class SanitizationReport(BaseModel):
     entries: list[RedactionEntry] = Field(default_factory=list)
     prompt_injection_detected: bool = False
     prompt_injection_count: int = 0
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def add(self, entry: RedactionEntry) -> None:
         """Add a redaction entry and update counters."""

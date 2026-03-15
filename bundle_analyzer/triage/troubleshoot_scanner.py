@@ -16,9 +16,9 @@ from bundle_analyzer.bundle.troubleshoot_parser import TroubleshootParser
 from bundle_analyzer.models import (
     ExternalAnalyzerIssue,
     PreflightReport,
+    TriageResult,
     TroubleshootAnalysis,
     TroubleshootAnalyzerResult,
-    TriageResult,
 )
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ class TroubleshootAnalyzerScanner:
 
     async def scan(
         self,
-        index: "BundleIndex",
+        index: BundleIndex,
         native_results: TriageResult,
     ) -> tuple[TroubleshootAnalysis, PreflightReport | None, list[ExternalAnalyzerIssue]]:
         """Parse troubleshoot.sh results and produce typed output with dedup.
