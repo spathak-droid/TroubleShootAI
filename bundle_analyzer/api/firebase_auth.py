@@ -1,55 +1,105 @@
 """Firebase authentication for the Bundle Analyzer API.
 
-Verifies Firebase ID tokens from the frontend and extracts user identity.
+Verifies Firebase ID tokens using Google's public keys directly,
+without requiring a service account or Application Default Credentials.
 """
 
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request
+import httpx
+import jwt
+from fastapi import HTTPException, Request
 from loguru import logger
 
-_firebase_initialized = False
+# Google's public key endpoint for Firebase tokens
+_GOOGLE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+_cached_certs: dict[str, str] = {}
+_certs_fetched_at: float = 0
+_CERTS_TTL = 3600  # refresh keys every hour
 
 
-def _init_firebase() -> None:
-    """Initialize Firebase Admin SDK (once)."""
-    global _firebase_initialized
-    if _firebase_initialized:
-        return
+def _get_project_id() -> str:
+    """Get the Firebase project ID from environment."""
+    pid = os.environ.get("FIREBASE_PROJECT_ID", "")
+    if not pid:
+        raise RuntimeError("FIREBASE_PROJECT_ID not set")
+    return pid
+
+
+def _fetch_google_certs() -> dict[str, str]:
+    """Fetch Google's public signing certificates for Firebase tokens.
+
+    Returns:
+        Dict mapping key ID to PEM certificate string.
+    """
+    global _cached_certs, _certs_fetched_at
+
+    now = time.time()
+    if _cached_certs and (now - _certs_fetched_at) < _CERTS_TTL:
+        return _cached_certs
 
     try:
-        import firebase_admin
-        from firebase_admin import credentials
-
-        # Check if already initialized
-        try:
-            firebase_admin.get_app()
-            _firebase_initialized = True
-            return
-        except ValueError:
-            pass
-
-        # Try service account JSON file first
-        cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_KEY")
-        if cred_path and os.path.exists(cred_path):
-            cred = credentials.Certificate(cred_path)
-            firebase_admin.initialize_app(cred)
-        else:
-            # Use project ID only (works for token verification without service account)
-            project_id = os.environ.get("FIREBASE_PROJECT_ID", "")
-            if project_id:
-                firebase_admin.initialize_app(options={"projectId": project_id})
-            else:
-                # Minimal init — will use GOOGLE_APPLICATION_CREDENTIALS or default
-                firebase_admin.initialize_app()
-
-        _firebase_initialized = True
-        logger.info("Firebase Admin SDK initialized")
+        resp = httpx.get(_GOOGLE_CERTS_URL, timeout=10)
+        resp.raise_for_status()
+        _cached_certs = resp.json()
+        _certs_fetched_at = now
+        logger.info("Fetched {} Google signing certs", len(_cached_certs))
     except Exception as exc:
-        logger.warning("Firebase Admin init failed: {}", exc)
+        logger.warning("Failed to fetch Google certs: {}", exc)
+        if _cached_certs:
+            return _cached_certs
+        raise
+
+    return _cached_certs
+
+
+def _verify_firebase_token(token: str) -> dict[str, Any]:
+    """Verify a Firebase ID token using Google's public keys.
+
+    Args:
+        token: The raw JWT token string.
+
+    Returns:
+        Decoded token payload dict.
+
+    Raises:
+        Exception: If verification fails.
+    """
+    project_id = _get_project_id()
+    certs = _fetch_google_certs()
+
+    # Decode header to get key ID
+    header = jwt.get_unverified_header(token)
+    kid = header.get("kid", "")
+
+    cert_pem = certs.get(kid)
+    if not cert_pem:
+        # Refresh certs in case keys rotated
+        global _certs_fetched_at
+        _certs_fetched_at = 0
+        certs = _fetch_google_certs()
+        cert_pem = certs.get(kid)
+        if not cert_pem:
+            raise ValueError(f"No matching certificate for kid={kid}")
+
+    # Verify and decode
+    decoded = jwt.decode(
+        token,
+        cert_pem,
+        algorithms=["RS256"],
+        audience=project_id,
+        issuer=f"https://securetoken.google.com/{project_id}",
+    )
+
+    # Ensure uid exists
+    if "sub" not in decoded or not decoded["sub"]:
+        raise ValueError("Token missing sub (uid) claim")
+
+    return decoded
 
 
 async def get_current_user(request: Request) -> str:
@@ -71,11 +121,8 @@ async def get_current_user(request: Request) -> str:
     token = auth_header[7:]  # strip "Bearer "
 
     try:
-        _init_firebase()
-        from firebase_admin import auth
-
-        decoded = auth.verify_id_token(token)
-        uid: str = decoded["uid"]
+        decoded = _verify_firebase_token(token)
+        uid: str = decoded["sub"]
         return uid
     except Exception as exc:
         logger.warning("Firebase token verification failed: {}", exc)
@@ -84,8 +131,6 @@ async def get_current_user(request: Request) -> str:
 
 async def get_optional_user(request: Request) -> str | None:
     """Extract user ID if token present, otherwise return None.
-
-    Used for endpoints that work with or without auth.
 
     Args:
         request: The incoming FastAPI request.
