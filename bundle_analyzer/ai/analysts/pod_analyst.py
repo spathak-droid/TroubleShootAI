@@ -272,8 +272,27 @@ class PodAnalyst:
         data = json.loads(cleaned)
 
         resource = f"pod/{namespace}/{pod_name}"
+        # Map pod resource to actual bundle paths for evidence grounding
+        pod_json_path = f"cluster-resources/pods/{namespace}/{pod_name}.json"
+        log_path = f"cluster-resources/pods/{namespace}/{pod_name}/logs"
+
         confidence_map = {"high": 0.9, "medium": 0.6, "low": 0.3}
         confidence = confidence_map.get(data.get("confidence", "low"), 0.3)
+
+        # Build evidence with best-guess bundle file paths
+        evidence_items = []
+        for e in data.get("evidence", []):
+            # Try to assign the right file path based on evidence content
+            e_lower = e.lower()
+            if any(kw in e_lower for kw in ["log", "stderr", "stdout", "traceback", "exception", "error:"]):
+                file_ref = log_path
+            elif any(kw in e_lower for kw in ["event", "warning", "reason:"]):
+                file_ref = f"cluster-resources/events/{namespace}.json"
+            elif any(kw in e_lower for kw in ["condition", "node", "allocat", "capacity"]):
+                file_ref = "cluster-resources/nodes.json"
+            else:
+                file_ref = pod_json_path
+            evidence_items.append(Evidence(file=file_ref, excerpt=e))
 
         finding = Finding(
             id=f"pod-{uuid.uuid4().hex[:8]}",
@@ -282,10 +301,7 @@ class PodAnalyst:
             resource=resource,
             symptom=data.get("immediate_cause", "Unknown symptom"),
             root_cause=data.get("root_cause", "Could not determine root cause"),
-            evidence=[
-                Evidence(file=resource, excerpt=e)
-                for e in data.get("evidence", [])
-            ],
+            evidence=evidence_items,
             fix=Fix(
                 description=data.get("fix", "No fix suggested"),
                 commands=[],
@@ -298,10 +314,7 @@ class PodAnalyst:
             findings=[finding],
             root_cause=data.get("root_cause"),
             confidence=confidence,
-            evidence=[
-                Evidence(file=resource, excerpt=e)
-                for e in data.get("evidence", [])
-            ],
+            evidence=evidence_items,
             remediation=[
                 Fix(description=data.get("fix", "No fix suggested"), commands=[])
             ] if data.get("fix") else [],

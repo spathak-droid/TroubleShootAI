@@ -315,6 +315,26 @@ class ConfigAnalyst:
         confidence_map = {"high": 0.9, "medium": 0.6, "low": 0.3}
         confidence = confidence_map.get(data.get("confidence", "low"), 0.3)
 
+        # Build evidence with best-guess bundle file paths
+        evidence_items = []
+        for e in data.get("evidence", []):
+            e_lower = e.lower()
+            if any(kw in e_lower for kw in ["service", "selector", "endpoint", "clusterip"]):
+                file_ref = "cluster-resources/services"
+            elif any(kw in e_lower for kw in ["configmap", "cm/"]):
+                file_ref = "cluster-resources/configmaps"
+            elif any(kw in e_lower for kw in ["secret"]):
+                file_ref = "cluster-resources/secrets"
+            elif any(kw in e_lower for kw in ["ingress", "backend", "host"]):
+                file_ref = "cluster-resources/ingress"
+            elif any(kw in e_lower for kw in ["networkpolic", "netpol"]):
+                file_ref = "cluster-resources/network-policies"
+            elif any(kw in e_lower for kw in ["rbac", "role", "permission"]):
+                file_ref = "cluster-resources/rbac"
+            else:
+                file_ref = resource
+            evidence_items.append(Evidence(file=file_ref, excerpt=e))
+
         finding = Finding(
             id=f"config-{uuid.uuid4().hex[:8]}",
             severity="critical" if confidence >= 0.6 else "warning",
@@ -322,10 +342,7 @@ class ConfigAnalyst:
             resource=resource,
             symptom=data.get("immediate_cause", "Unknown symptom"),
             root_cause=data.get("root_cause", "Could not determine root cause"),
-            evidence=[
-                Evidence(file=resource, excerpt=e)
-                for e in data.get("evidence", [])
-            ],
+            evidence=evidence_items,
             fix=Fix(
                 description=data.get("fix", "No fix suggested"),
                 commands=[],
@@ -338,10 +355,7 @@ class ConfigAnalyst:
             findings=[finding],
             root_cause=data.get("root_cause"),
             confidence=confidence,
-            evidence=[
-                Evidence(file=resource, excerpt=e)
-                for e in data.get("evidence", [])
-            ],
+            evidence=evidence_items,
             remediation=[
                 Fix(description=data.get("fix", "No fix suggested"), commands=[])
             ] if data.get("fix") else [],

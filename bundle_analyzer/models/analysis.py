@@ -35,6 +35,7 @@ class AnalysisResult(BaseModel):
     preflight_report: PreflightReport | None = None
     analysis_duration_seconds: float
     sanitization_summary: str = ""  # e.g. "Redacted 47 patterns (23 credentials, 12 PII)"
+    summary: str | None = None  # Human-readable summary of the analysis for homepage display
     evaluation: EvaluationResult | None = None
     hypotheses: list[dict] = Field(default_factory=list)  # ranked RCA hypotheses
     analysis_quality: Literal["high", "medium", "degraded"] = "medium"

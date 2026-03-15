@@ -146,17 +146,21 @@ class AnalysisOrchestrator:
         for output in analyst_outputs:
             all_findings.extend(output.findings)
 
-        # Step 7.5: Validate AI claims against evidence
+        # Step 7.5: Validate AI claims against evidence AND triage data
         if all_findings:
             try:
                 claim_validator = ClaimValidator()
-                validation_result = await claim_validator.validate(all_findings, index)
+                validation_result = await claim_validator.validate(
+                    all_findings, index, triage=triage,
+                )
                 all_findings = validation_result.findings
                 logger.info(
-                    "Claim validation: {}/{} evidence verified, {} hypotheses",
+                    "Claim validation: {}/{} evidence verified, {} hypotheses, "
+                    "{} triage-corroborated",
                     validation_result.total_verified,
                     validation_result.total_verified + validation_result.total_unverified,
                     validation_result.hypothesis_count,
+                    validation_result.triage_corroborated_count,
                 )
             except Exception as exc:
                 logger.warning("Claim validation failed, using unvalidated findings: {}", exc)
@@ -167,6 +171,18 @@ class AnalysisOrchestrator:
 
         # Serialize hypotheses for the result
         hypotheses_dicts = [h.model_dump() for h in hypotheses]
+
+        # Build human-readable summary for homepage display
+        summary = _build_analysis_summary(
+            all_findings, synthesis, triage, elapsed,
+        )
+
+        # Determine analysis quality based on validation
+        quality = "high"
+        if not all_findings:
+            quality = "degraded"
+        elif any(f.confidence < 0.3 for f in all_findings):
+            quality = "medium"
 
         result = AnalysisResult(
             bundle_metadata=index.metadata,
@@ -182,7 +198,9 @@ class AnalysisOrchestrator:
             preflight_report=triage.preflight_report,
             cluster_summary=build_cluster_summary(triage, index),
             analysis_duration_seconds=elapsed,
+            summary=summary,
             hypotheses=hypotheses_dicts,
+            analysis_quality=quality,
         )
 
         logger.info(
@@ -300,5 +318,51 @@ class AnalysisOrchestrator:
             preflight_report=triage.preflight_report,
             cluster_summary=build_cluster_summary(triage, index),
             analysis_duration_seconds=elapsed,
+            summary="Triage-only analysis (no AI key configured)",
             hypotheses=hypotheses_dicts,
+            analysis_quality="degraded",
         )
+
+
+def _build_analysis_summary(
+    findings: list[Finding],
+    synthesis: dict,
+    triage: TriageResult,
+    elapsed: float,
+) -> str:
+    """Build a human-readable summary of the analysis for homepage display.
+
+    Args:
+        findings: All validated findings.
+        synthesis: Synthesis result dict.
+        triage: Triage results.
+        elapsed: Analysis duration in seconds.
+
+    Returns:
+        A concise 1-2 sentence summary.
+    """
+    critical_count = sum(1 for f in findings if f.severity == "critical")
+    warning_count = sum(1 for f in findings if f.severity == "warning")
+    root_cause = synthesis.get("root_cause")
+
+    parts: list[str] = []
+
+    if root_cause and root_cause != "Could not determine root cause":
+        # Truncate root cause to ~120 chars for summary
+        rc = root_cause if len(root_cause) <= 120 else root_cause[:117] + "..."
+        parts.append(rc)
+    elif critical_count:
+        parts.append(f"Found {critical_count} critical issue(s)")
+    elif warning_count:
+        parts.append(f"Found {warning_count} warning(s)")
+    else:
+        parts.append("No critical issues detected")
+
+    # Add context about scope
+    total_issues = len(triage.critical_pods) + len(triage.warning_pods) + len(triage.node_issues)
+    if total_issues > 0:
+        parts.append(
+            f"Analyzed {total_issues} resource(s) in {elapsed:.1f}s"
+        )
+
+    return ". ".join(parts) + "."

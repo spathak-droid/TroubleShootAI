@@ -210,8 +210,23 @@ class NodeAnalyst:
         data = json.loads(cleaned)
 
         resource = f"node/{node_name}"
+        node_json_path = f"cluster-resources/nodes/{node_name}.json"
         confidence_map = {"high": 0.9, "medium": 0.6, "low": 0.3}
         confidence = confidence_map.get(data.get("confidence", "low"), 0.3)
+
+        # Build evidence with actual bundle file paths
+        evidence_items = []
+        for e in data.get("evidence", []):
+            e_lower = e.lower()
+            if any(kw in e_lower for kw in ["event", "evict", "reason:"]):
+                file_ref = "cluster-resources/events.json"
+            elif any(kw in e_lower for kw in ["metric", "usage", "cpu%", "mem%"]):
+                file_ref = f"node-metrics/{node_name}.json"
+            elif any(kw in e_lower for kw in ["pod", "scheduled", "request"]):
+                file_ref = "cluster-resources/pods"
+            else:
+                file_ref = node_json_path
+            evidence_items.append(Evidence(file=file_ref, excerpt=e))
 
         finding = Finding(
             id=f"node-{uuid.uuid4().hex[:8]}",
@@ -220,10 +235,7 @@ class NodeAnalyst:
             resource=resource,
             symptom=data.get("immediate_cause", "Unknown symptom"),
             root_cause=data.get("root_cause", "Could not determine root cause"),
-            evidence=[
-                Evidence(file=resource, excerpt=e)
-                for e in data.get("evidence", [])
-            ],
+            evidence=evidence_items,
             fix=Fix(
                 description=data.get("fix", "No fix suggested"),
                 commands=[],
@@ -236,10 +248,7 @@ class NodeAnalyst:
             findings=[finding],
             root_cause=data.get("root_cause"),
             confidence=confidence,
-            evidence=[
-                Evidence(file=resource, excerpt=e)
-                for e in data.get("evidence", [])
-            ],
+            evidence=evidence_items,
             remediation=[
                 Fix(description=data.get("fix", "No fix suggested"), commands=[])
             ] if data.get("fix") else [],
