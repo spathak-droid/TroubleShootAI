@@ -36,9 +36,9 @@ Respond in this exact JSON format:
   "root_cause": "The underlying WHY with specific numbers (e.g., 'total pod memory requests 7.2Gi exceed node allocatable 8Gi, leaving no headroom for system processes')",
   "confidence": "high|medium|low",
   "evidence": [
-    "QUOTE: 'condition MemoryPressure=True since 2024-01-15T10:00:00Z'",
-    "QUOTE: 'allocatable memory: 8Gi, sum of pod requests: 7.2Gi'",
-    "QUOTE: 'eviction event for pod X at 10:05:00Z, reason: The node was low on resource: memory'"
+    "QUOTE with source: '[source: cluster-resources/nodes/node-1.json] condition MemoryPressure=True since 2024-01-15T10:00:00Z'",
+    "QUOTE with source: '[source: cluster-resources/nodes/node-1.json] allocatable memory: 8Gi, sum of pod requests: 7.2Gi'",
+    "QUOTE with source: '[source: cluster-resources/events/default.json] eviction event for pod X at 10:05:00Z, reason: The node was low on resource: memory'"
   ],
   "causal_chain": [
     "Root: Pod memory requests total 7.2Gi on 8Gi node, leaving only 800Mi for system",
@@ -57,6 +57,10 @@ def build_node_user_prompt(
     node_metrics: Optional[str] = None,
     warning_events: Optional[str] = None,
     eviction_events: Optional[str] = None,
+    *,
+    node_json_path: str = "",
+    metrics_path: str = "",
+    events_path: str = "",
 ) -> str:
     """Build a structured context block for the node analyst.
 
@@ -66,13 +70,19 @@ def build_node_user_prompt(
         node_metrics: Node metrics if available.
         warning_events: Warning events for this node.
         eviction_events: Eviction events on this node.
+        node_json_path: Actual bundle-relative path to the node JSON file.
+        metrics_path: Actual bundle-relative path to the node metrics file.
+        events_path: Actual bundle-relative path to the events file.
 
     Returns:
         Formatted user prompt string with all available context sections.
     """
     sections: list[str] = []
 
-    sections.append("## Node Spec & Status\n```json\n" + node_json + "\n```")
+    node_header = "## Node Spec & Status"
+    if node_json_path:
+        node_header += f" [source: {node_json_path}]"
+    sections.append(node_header + "\n```json\n" + node_json + "\n```")
 
     if scheduled_pods:
         sections.append(
@@ -84,20 +94,29 @@ def build_node_user_prompt(
         sections.append("## Pods Scheduled on This Node\n*No pod data available.*")
 
     if node_metrics:
-        sections.append("## Node Metrics\n```\n" + node_metrics + "\n```")
+        metrics_header = "## Node Metrics"
+        if metrics_path:
+            metrics_header += f" [source: {metrics_path}]"
+        sections.append(metrics_header + "\n```\n" + node_metrics + "\n```")
 
     if warning_events:
-        sections.append(
-            "## Warning Events for This Node\n```\n" + warning_events + "\n```"
-        )
+        events_header = "## Warning Events for This Node"
+        if events_path:
+            events_header += f" [source: {events_path}]"
+        sections.append(events_header + "\n```\n" + warning_events + "\n```")
     else:
         sections.append("## Warning Events\n*No warning events found for this node.*")
 
     if eviction_events:
-        sections.append("## Eviction Events\n```\n" + eviction_events + "\n```")
+        eviction_header = "## Eviction Events"
+        if events_path:
+            eviction_header += f" [source: {events_path}]"
+        sections.append(eviction_header + "\n```\n" + eviction_events + "\n```")
 
     sections.append(
-        "---\n\nAnalyze the above evidence and respond with the JSON format specified."
+        "---\n\nAnalyze the above evidence and respond with the JSON format specified. "
+        "When quoting evidence, include the [source: <path>] tag from the section header "
+        "where you found the data."
     )
 
     return "\n\n".join(sections)

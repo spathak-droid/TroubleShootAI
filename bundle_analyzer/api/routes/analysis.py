@@ -11,6 +11,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from loguru import logger
 
 from bundle_analyzer.api.deps import get_session
+from bundle_analyzer.api.response_scrubber import scrub_analysis_response, scrub_triage_response
 from bundle_analyzer.api.schemas import (
     AnalysisStatus,
     AnalysisStatusEnum,
@@ -247,7 +248,7 @@ async def get_analysis(
         HTTPException: 404 if analysis has not completed yet.
     """
     if session.analysis is not None:
-        return session.analysis
+        return scrub_analysis_response(session.analysis)
 
     # Try loading from database
     try:
@@ -257,7 +258,7 @@ async def get_analysis(
             async with _session_factory() as db:
                 record = await get_bundle_record(db, bundle_id)
                 if record is not None and record.analysis_json is not None:
-                    return record.analysis_json
+                    return scrub_analysis_response(record.analysis_json)
     except Exception as exc:
         logger.warning("Failed to load analysis from DB: {}", exc)
 
@@ -310,7 +311,7 @@ async def get_triage(
             detail="Triage not yet complete. "
             f"Current status: {session.status}",
         )
-    return session.triage
+    return scrub_triage_response(session.triage)
 
 
 # ── Evaluation endpoints ─────────────────────────────────────────

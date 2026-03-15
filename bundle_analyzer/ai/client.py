@@ -86,26 +86,76 @@ class BundleAnalyzerClient:
         self._init_clients()
 
     def _init_clients(self) -> None:
-        """Create the appropriate SDK clients based on provider."""
+        """Create the appropriate SDK clients based on provider.
+
+        If the required SDK is not installed, the client is created in a
+        degraded state.  Callers can still replace ``_call_async`` /
+        ``_call_sync`` (e.g. in tests) and everything will work.  An actual
+        API call will raise ``RuntimeError`` explaining the missing package.
+        """
         if self._provider in ("openrouter", "openai"):
-            from openai import AsyncOpenAI, OpenAI
+            try:
+                from openai import AsyncOpenAI, OpenAI
 
-            base_url = (
-                "https://openrouter.ai/api/v1"
-                if self._provider == "openrouter"
-                else None
-            )
-            self._sync_client = OpenAI(api_key=self._api_key, base_url=base_url, timeout=120.0)
-            self._async_client = AsyncOpenAI(api_key=self._api_key, base_url=base_url, timeout=120.0)
-            self._call_async = self._openai_async
-            self._call_sync = self._openai_sync
+                base_url = (
+                    "https://openrouter.ai/api/v1"
+                    if self._provider == "openrouter"
+                    else None
+                )
+                self._sync_client = OpenAI(api_key=self._api_key, base_url=base_url, timeout=120.0)
+                self._async_client = AsyncOpenAI(api_key=self._api_key, base_url=base_url, timeout=120.0)
+                self._call_async = self._openai_async
+                self._call_sync = self._openai_sync
+            except ImportError:
+                logger.warning(
+                    "openai package not installed — AI calls will fail unless "
+                    "_call_async/_call_sync are replaced (e.g. in tests)"
+                )
+                self._sync_client = None  # type: ignore[assignment]
+                self._async_client = None  # type: ignore[assignment]
+                self._call_async = self._missing_openai_async  # type: ignore[assignment]
+                self._call_sync = self._missing_openai_sync  # type: ignore[assignment]
         else:
-            import anthropic
+            try:
+                import anthropic
 
-            self._sync_client = anthropic.Anthropic(api_key=self._api_key)
-            self._async_client = anthropic.AsyncAnthropic(api_key=self._api_key)
-            self._call_async = self._anthropic_async
-            self._call_sync = self._anthropic_sync
+                self._sync_client = anthropic.Anthropic(api_key=self._api_key)
+                self._async_client = anthropic.AsyncAnthropic(api_key=self._api_key)
+                self._call_async = self._anthropic_async
+                self._call_sync = self._anthropic_sync
+            except ImportError:
+                logger.warning(
+                    "anthropic package not installed — AI calls will fail unless "
+                    "_call_async/_call_sync are replaced (e.g. in tests)"
+                )
+                self._sync_client = None  # type: ignore[assignment]
+                self._async_client = None  # type: ignore[assignment]
+                self._call_async = self._missing_anthropic_async  # type: ignore[assignment]
+                self._call_sync = self._missing_anthropic_sync  # type: ignore[assignment]
+
+    async def _missing_openai_async(
+        self, system: str, user: str, max_tokens: int, temperature: float
+    ) -> str:
+        """Placeholder that raises when openai is not installed."""
+        raise RuntimeError("openai package is required but not installed. Run: pip install openai")
+
+    def _missing_openai_sync(
+        self, system: str, user: str, max_tokens: int, temperature: float
+    ) -> str:
+        """Placeholder that raises when openai is not installed."""
+        raise RuntimeError("openai package is required but not installed. Run: pip install openai")
+
+    async def _missing_anthropic_async(
+        self, system: str, user: str, max_tokens: int, temperature: float
+    ) -> str:
+        """Placeholder that raises when anthropic is not installed."""
+        raise RuntimeError("anthropic package is required but not installed. Run: pip install anthropic")
+
+    def _missing_anthropic_sync(
+        self, system: str, user: str, max_tokens: int, temperature: float
+    ) -> str:
+        """Placeholder that raises when anthropic is not installed."""
+        raise RuntimeError("anthropic package is required but not installed. Run: pip install anthropic")
 
     async def _openai_async(
         self, system: str, user: str, max_tokens: int, temperature: float

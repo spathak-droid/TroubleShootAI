@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from loguru import logger
 
 from bundle_analyzer.ai.client import BundleAnalyzerClient
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.models import LogDiagnosis, TriageResult
+
+# Timeout for the entire log analysis batch (seconds)
+LOG_ANALYSIS_TIMEOUT = 120
 
 
 async def run_log_analysis(
@@ -17,7 +22,8 @@ async def run_log_analysis(
     """Run AI log analysis on crash-looping containers.
 
     Creates a LogAnalyst and passes all crash contexts for concurrent
-    AI-powered log forensics.
+    AI-powered log forensics. The call is guarded by LOG_ANALYSIS_TIMEOUT
+    to prevent hung LLM calls from blocking the pipeline.
 
     Args:
         client: API client for AI calls.
@@ -31,8 +37,11 @@ async def run_log_analysis(
         from bundle_analyzer.ai.analysts.log_analyst import LogAnalyst
 
         analyst = LogAnalyst()
-        diagnoses = await analyst.analyze_crash_contexts(
-            client, triage.crash_contexts, index
+        diagnoses = await asyncio.wait_for(
+            analyst.analyze_crash_contexts(
+                client, triage.crash_contexts, index
+            ),
+            timeout=LOG_ANALYSIS_TIMEOUT,
         )
         logger.info(
             "Log analysis complete: {} diagnosis(es) for {} crash context(s)",
@@ -40,6 +49,9 @@ async def run_log_analysis(
             len(triage.crash_contexts),
         )
         return diagnoses
+    except asyncio.TimeoutError:
+        logger.error("Log analysis timed out after {}s", LOG_ANALYSIS_TIMEOUT)
+        return []
     except (ImportError, AttributeError) as exc:
         logger.warning("Log analyst not available: {}", exc)
         return []

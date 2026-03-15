@@ -7,6 +7,12 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from bundle_analyzer.api.deps import get_session
+from bundle_analyzer.api.response_scrubber import (
+    scrub_findings_list,
+    scrub_predictions_list,
+    scrub_timeline_list,
+    scrub_uncertainty_list,
+)
 from bundle_analyzer.api.session import BundleSession
 from bundle_analyzer.models import (
     Finding,
@@ -65,7 +71,7 @@ async def get_findings(
     if resource is not None:
         findings = [f for f in findings if resource.lower() in f.resource.lower()]
 
-    return findings
+    return scrub_findings_list(findings)
 
 
 @router.get("/timeline", response_model=list[HistoricalEvent])
@@ -82,7 +88,7 @@ async def get_timeline(
     """
     _require_analysis(session)
     assert session.analysis is not None
-    return session.analysis.timeline
+    return scrub_timeline_list(session.analysis.timeline)
 
 
 @router.get("/predictions", response_model=list[PredictedFailure])
@@ -99,7 +105,7 @@ async def get_predictions(
     """
     _require_analysis(session)
     assert session.analysis is not None
-    return session.analysis.predictions
+    return scrub_predictions_list(session.analysis.predictions)
 
 
 @router.get("/uncertainty", response_model=list[UncertaintyGap])
@@ -116,4 +122,4 @@ async def get_uncertainty(
     """
     _require_analysis(session)
     assert session.analysis is not None
-    return session.analysis.uncertainty
+    return scrub_uncertainty_list(session.analysis.uncertainty)

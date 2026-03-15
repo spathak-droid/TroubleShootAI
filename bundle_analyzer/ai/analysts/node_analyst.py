@@ -7,6 +7,7 @@ and correlates them with pod scheduling failures.
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from typing import Any
@@ -66,12 +67,18 @@ class NodeAnalyst:
         warning_events = self._get_warning_events(node_name, index)
         eviction_events = self._get_eviction_events(node_name, index)
 
+        # Resolve actual bundle file paths for evidence grounding
+        source_paths = self._resolve_source_paths(node_name, index)
+
         user_prompt = build_node_user_prompt(
             node_json=node_json_str,
             scheduled_pods=scheduled_pods,
             node_metrics=node_metrics,
             warning_events=warning_events,
             eviction_events=eviction_events,
+            node_json_path=source_paths.get("node", ""),
+            events_path=source_paths.get("events", ""),
+            metrics_path=source_paths.get("metrics", ""),
         )
 
         for attempt in range(self.MAX_RETRIES):
@@ -83,7 +90,9 @@ class NodeAnalyst:
                     system=system_prompt,
                     user=user_prompt,
                 )
-                result = self._parse_response(raw_response, node_name)
+                result = self._parse_response(
+                    raw_response, node_name, source_paths=source_paths,
+                )
                 elapsed = time.monotonic() - start
                 logger.debug(
                     "NodeAnalyst: node {} completed in {:.2f}s",
@@ -186,12 +195,53 @@ class NodeAnalyst:
 
         return "\n".join(eviction_events) if eviction_events else None
 
-    def _parse_response(self, raw: str, node_name: str) -> AnalystOutput:
+    def _resolve_source_paths(
+        self, node_name: str, index: BundleIndex,
+    ) -> dict[str, str]:
+        """Resolve actual bundle file paths for evidence grounding.
+
+        Args:
+            node_name: Node name.
+            index: Bundle index for path resolution.
+
+        Returns:
+            Dict mapping source categories to real bundle paths.
+        """
+        paths: dict[str, str] = {}
+
+        node_path = f"cluster-resources/nodes/{node_name}.json"
+        if index.read_json(node_path) is not None:
+            paths["node"] = node_path
+        else:
+            paths["node"] = "cluster-resources/nodes.json"
+
+        # Events — scan cluster-resources/events/ directory for actual files
+        events_dir = index.root / "cluster-resources" / "events"
+        if events_dir.is_dir():
+            event_files = sorted(events_dir.glob("*.json"))
+            if event_files:
+                paths["events"] = str(event_files[0].relative_to(index.root))
+            else:
+                paths["events"] = "cluster-resources/events"
+        else:
+            paths["events"] = "cluster-resources/events.json"
+
+        metrics_path = f"node-metrics/{node_name}.json"
+        if index.read_json(metrics_path) is not None:
+            paths["metrics"] = metrics_path
+
+        return paths
+
+    def _parse_response(
+        self, raw: str, node_name: str,
+        *, source_paths: dict[str, str] | None = None,
+    ) -> AnalystOutput:
         """Parse Claude's JSON response into an AnalystOutput.
 
         Args:
             raw: Raw text response from Claude (should be JSON).
             node_name: Node name for building resource identifiers.
+            source_paths: Actual bundle paths for evidence grounding.
 
         Returns:
             Structured AnalystOutput.
@@ -210,22 +260,27 @@ class NodeAnalyst:
         data = json.loads(cleaned)
 
         resource = f"node/{node_name}"
-        node_json_path = f"cluster-resources/nodes/{node_name}.json"
+        node_json_path = (source_paths or {}).get("node", f"cluster-resources/nodes/{node_name}.json")
         confidence_map = {"high": 0.9, "medium": 0.6, "low": 0.3}
         confidence = confidence_map.get(data.get("confidence", "low"), 0.3)
 
         # Build evidence with actual bundle file paths
         evidence_items = []
         for e in data.get("evidence", []):
-            e_lower = e.lower()
-            if any(kw in e_lower for kw in ["event", "evict", "reason:"]):
-                file_ref = "cluster-resources/events.json"
-            elif any(kw in e_lower for kw in ["metric", "usage", "cpu%", "mem%"]):
-                file_ref = f"node-metrics/{node_name}.json"
-            elif any(kw in e_lower for kw in ["pod", "scheduled", "request"]):
-                file_ref = "cluster-resources/pods"
+            # Extract [source: path] tag if Claude included it
+            match = re.search(r"\[source:\s*([^\]]+)\]", e)
+            if match:
+                file_ref = match.group(1).strip()
             else:
-                file_ref = node_json_path
+                e_lower = e.lower()
+                if any(kw in e_lower for kw in ["event", "evict", "reason:"]):
+                    file_ref = (source_paths or {}).get("events", "cluster-resources/events.json")
+                elif any(kw in e_lower for kw in ["metric", "usage", "cpu%", "mem%"]):
+                    file_ref = (source_paths or {}).get("metrics", f"node-metrics/{node_name}.json")
+                elif any(kw in e_lower for kw in ["pod", "scheduled", "request"]):
+                    file_ref = "cluster-resources/pods"
+                else:
+                    file_ref = node_json_path
             evidence_items.append(Evidence(file=file_ref, excerpt=e))
 
         finding = Finding(

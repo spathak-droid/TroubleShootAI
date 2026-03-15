@@ -7,6 +7,7 @@ using Claude to identify root causes and recommend fixes.
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from typing import Any
@@ -79,6 +80,11 @@ class PodAnalyst:
         # Node conditions
         node_conditions = self._get_node_conditions(node_name, index)
 
+        # Resolve actual bundle file paths for evidence grounding
+        source_paths = self._resolve_source_paths(
+            namespace, pod_name, node_name, pod_data, index,
+        )
+
         user_prompt = build_pod_user_prompt(
             pod_json=pod_json_str,
             current_logs=current_logs,
@@ -86,6 +92,10 @@ class PodAnalyst:
             exit_codes=exit_codes,
             events=events,
             node_conditions=node_conditions,
+            pod_json_path=source_paths.get("pod_json", ""),
+            log_paths=source_paths.get("log_paths"),
+            events_path=source_paths.get("events", ""),
+            node_json_path=source_paths.get("node", ""),
         )
 
         # Call Claude with retries
@@ -98,7 +108,10 @@ class PodAnalyst:
                     system=system_prompt,
                     user=user_prompt,
                 )
-                result = self._parse_response(raw_response, namespace, pod_name)
+                result = self._parse_response(
+                    raw_response, namespace, pod_name,
+                    source_paths=source_paths,
+                )
                 elapsed = time.monotonic() - start
                 logger.debug(
                     "PodAnalyst: {}/{} completed in {:.2f}s",
@@ -243,8 +256,70 @@ class PodAnalyst:
             names.append(c.get("name", "main"))
         return names
 
+    def _resolve_source_paths(
+        self,
+        namespace: str,
+        pod_name: str,
+        node_name: str | None,
+        pod_data: dict[str, Any],
+        index: BundleIndex,
+    ) -> dict[str, Any]:
+        """Resolve actual bundle file paths for evidence grounding.
+
+        Args:
+            namespace: Pod namespace.
+            pod_name: Pod name.
+            node_name: Node name the pod is scheduled on.
+            pod_data: Pod JSON data.
+            index: Bundle index for path resolution.
+
+        Returns:
+            Dict mapping source categories to real bundle paths.
+        """
+        paths: dict[str, Any] = {}
+
+        # Pod JSON path
+        pod_path = f"cluster-resources/pods/{namespace}/{pod_name}.json"
+        if index.read_json(pod_path) is not None:
+            paths["pod_json"] = pod_path
+        else:
+            paths["pod_json"] = f"cluster-resources/pods/{namespace}.json"
+
+        # Log paths
+        containers = self._get_container_names(pod_data)
+        log_paths: list[str] = []
+        for container in containers:
+            log_p = index.find_log_path(namespace, pod_name, container, previous=False)
+            if log_p is not None:
+                # Make path relative to bundle root
+                try:
+                    rel = str(log_p.relative_to(index.root))
+                except ValueError:
+                    rel = str(log_p)
+                log_paths.append(rel)
+        if log_paths:
+            paths["log_paths"] = log_paths
+
+        # Events path
+        events_path = f"cluster-resources/events/{namespace}/events.json"
+        if index.read_json(events_path) is not None:
+            paths["events"] = events_path
+        else:
+            paths["events"] = f"cluster-resources/events/{namespace}.json"
+
+        # Node path
+        if node_name:
+            node_path = f"cluster-resources/nodes/{node_name}.json"
+            if index.read_json(node_path) is not None:
+                paths["node"] = node_path
+            else:
+                paths["node"] = "cluster-resources/nodes.json"
+
+        return paths
+
     def _parse_response(
-        self, raw: str, namespace: str, pod_name: str
+        self, raw: str, namespace: str, pod_name: str,
+        *, source_paths: dict[str, Any] | None = None,
     ) -> AnalystOutput:
         """Parse Claude's JSON response into an AnalystOutput.
 
@@ -279,20 +354,27 @@ class PodAnalyst:
         confidence_map = {"high": 0.9, "medium": 0.6, "low": 0.3}
         confidence = confidence_map.get(data.get("confidence", "low"), 0.3)
 
-        # Build evidence with best-guess bundle file paths
+        # Build evidence with actual bundle file paths from source_paths
         evidence_items = []
         for e in data.get("evidence", []):
-            # Try to assign the right file path based on evidence content
-            e_lower = e.lower()
-            if any(kw in e_lower for kw in ["log", "stderr", "stdout", "traceback", "exception", "error:"]):
-                file_ref = log_path
-            elif any(kw in e_lower for kw in ["event", "warning", "reason:"]):
-                file_ref = f"cluster-resources/events/{namespace}.json"
-            elif any(kw in e_lower for kw in ["condition", "node", "allocat", "capacity"]):
-                file_ref = "cluster-resources/nodes.json"
-            else:
-                file_ref = pod_json_path
-            evidence_items.append(Evidence(file=file_ref, excerpt=e))
+            # Extract [source: path] tag if Claude included it
+            file_ref = self._extract_source_tag(e)
+            excerpt = e
+
+            if file_ref is None:
+                # Fall back to source_paths mapping by keyword
+                e_lower = e.lower()
+                if any(kw in e_lower for kw in ["log", "stderr", "stdout", "traceback", "exception", "error:"]):
+                    log_paths_list = (source_paths or {}).get("log_paths")
+                    file_ref = log_paths_list[0] if log_paths_list else log_path
+                elif any(kw in e_lower for kw in ["event", "warning", "reason:"]):
+                    file_ref = (source_paths or {}).get("events", f"cluster-resources/events/{namespace}/events.json")
+                elif any(kw in e_lower for kw in ["condition", "node", "allocat", "capacity"]):
+                    file_ref = (source_paths or {}).get("node", "cluster-resources/nodes.json")
+                else:
+                    file_ref = (source_paths or {}).get("pod_json", pod_json_path)
+
+            evidence_items.append(Evidence(file=file_ref, excerpt=excerpt))
 
         finding = Finding(
             id=f"pod-{uuid.uuid4().hex[:8]}",
@@ -320,6 +402,21 @@ class PodAnalyst:
             ] if data.get("fix") else [],
             uncertainty=data.get("what_i_cant_tell", []),
         )
+
+    @staticmethod
+    def _extract_source_tag(evidence_text: str) -> str | None:
+        """Extract a [source: path] tag from evidence text if present.
+
+        Args:
+            evidence_text: Evidence string potentially containing [source: ...].
+
+        Returns:
+            The extracted file path, or None if no tag found.
+        """
+        match = re.search(r"\[source:\s*([^\]]+)\]", evidence_text)
+        if match:
+            return match.group(1).strip()
+        return None
 
     @staticmethod
     def _fallback_output(namespace: str, pod_name: str, error: str) -> AnalystOutput:

@@ -25,6 +25,32 @@ from bundle_analyzer.ai.orchestration.helpers import (
 MAX_PODS_TO_ANALYZE = 5
 MAX_NODES_TO_ANALYZE = 3
 
+# Timeout constants for AI analyst calls (seconds)
+AI_ANALYST_TIMEOUT = 120  # overall timeout for the parallel analyst batch
+PER_RESOURCE_TIMEOUT = 60  # timeout for a single pod/node analysis
+
+
+async def _analyze_with_timeout(
+    coro,
+    resource_name: str,
+    timeout: float = PER_RESOURCE_TIMEOUT,
+):
+    """Run a single analyst coroutine with a timeout guard.
+
+    Args:
+        coro: The analyst coroutine to execute.
+        resource_name: Human-readable name for logging on timeout.
+        timeout: Maximum seconds to wait before cancelling.
+
+    Returns:
+        The analyst result, or None if the call timed out.
+    """
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout)
+    except asyncio.TimeoutError:
+        logger.warning("Analysis timed out for {} after {}s", resource_name, timeout)
+        return None
+
 
 def _merge_analyst_outputs(outputs: list[AnalystOutput], analyst_type: str) -> AnalystOutput:
     """Merge multiple per-resource outputs into a single AnalystOutput.
@@ -84,6 +110,8 @@ async def run_analysts_parallel(
     """Run pod, node, and config analysts concurrently.
 
     Analyzes ALL failing pods and nodes (up to limits), not just the first.
+    The entire batch is guarded by AI_ANALYST_TIMEOUT to prevent hung LLM
+    calls from blocking the pipeline indefinitely.
 
     Args:
         client: API client for Claude calls.
@@ -92,7 +120,7 @@ async def run_analysts_parallel(
         context_injector: ISV context for prompt augmentation.
 
     Returns:
-        List of analyst outputs (may be fewer than 3 if some fail).
+        List of analyst outputs (may be fewer than 3 if some fail or time out).
     """
     tasks = []
 
@@ -112,7 +140,15 @@ async def run_analysts_parallel(
         logger.info("No analysts needed — triage found no issues requiring AI analysis")
         return []
 
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(*tasks, return_exceptions=True),
+            timeout=AI_ANALYST_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        logger.error("AI analysts timed out after {}s", AI_ANALYST_TIMEOUT)
+        results = []
+
     outputs: list[AnalystOutput] = []
     for result in results:
         if isinstance(result, AnalystOutput):
@@ -129,6 +165,9 @@ async def _run_all_pod_analysts(
     context_injector: ContextInjector,
 ) -> AnalystOutput:
     """Analyze ALL failing pods (critical first, then warning) up to limit.
+
+    Each individual pod analysis is guarded by PER_RESOURCE_TIMEOUT to prevent
+    a single hung LLM call from blocking the rest of the batch.
 
     Args:
         client: API client for Claude calls.
@@ -165,7 +204,8 @@ async def _run_all_pod_analysts(
     for target in pods_to_analyze:
         pod_data = find_pod_json(target.namespace, target.pod_name, index)
         if pod_data:
-            tasks.append(analyst.analyze(client, pod_data, index, context_injector=context_injector))
+            coro = analyst.analyze(client, pod_data, index, context_injector=context_injector)
+            tasks.append(_analyze_with_timeout(coro, f"{target.namespace}/{target.pod_name}"))
         else:
             logger.warning("Pod JSON not found for {}/{}", target.namespace, target.pod_name)
 
@@ -179,6 +219,7 @@ async def _run_all_pod_analysts(
             outputs.append(result)
         elif isinstance(result, Exception):
             logger.error("Pod analyst failed for a pod: {}", result)
+        # None results come from _analyze_with_timeout on timeout — already logged
 
     return _merge_analyst_outputs(outputs, "pod")
 
@@ -190,6 +231,9 @@ async def _run_all_node_analysts(
     context_injector: ContextInjector,
 ) -> AnalystOutput:
     """Analyze ALL nodes with issues up to limit.
+
+    Each individual node analysis is guarded by PER_RESOURCE_TIMEOUT to prevent
+    a single hung LLM call from blocking the rest of the batch.
 
     Args:
         client: API client for Claude calls.
@@ -224,7 +268,8 @@ async def _run_all_node_analysts(
     for target in nodes_to_analyze:
         node_data = find_node_json(target.node_name, index)
         if node_data:
-            tasks.append(analyst.analyze(client, node_data, index, context_injector=context_injector))
+            coro = analyst.analyze(client, node_data, index, context_injector=context_injector)
+            tasks.append(_analyze_with_timeout(coro, target.node_name))
         else:
             logger.warning("Node JSON not found for {}", target.node_name)
 
@@ -238,6 +283,7 @@ async def _run_all_node_analysts(
             outputs.append(result)
         elif isinstance(result, Exception):
             logger.error("Node analyst failed for a node: {}", result)
+        # None results come from _analyze_with_timeout on timeout — already logged
 
     return _merge_analyst_outputs(outputs, "node")
 
