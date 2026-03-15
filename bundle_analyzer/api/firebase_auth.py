@@ -12,6 +12,7 @@ from typing import Any
 
 import httpx
 import jwt
+from cryptography.x509 import load_pem_x509_certificate
 from fastapi import HTTPException, Request
 from loguru import logger
 
@@ -86,10 +87,14 @@ def _verify_firebase_token(token: str) -> dict[str, Any]:
         if not cert_pem:
             raise ValueError(f"No matching certificate for kid={kid}")
 
+    # Convert X.509 certificate to public key
+    cert_obj = load_pem_x509_certificate(cert_pem.encode("utf-8"))
+    public_key = cert_obj.public_key()
+
     # Verify and decode
     decoded = jwt.decode(
         token,
-        cert_pem,
+        public_key,
         algorithms=["RS256"],
         audience=project_id,
         issuer=f"https://securetoken.google.com/{project_id}",
