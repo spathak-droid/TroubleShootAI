@@ -163,32 +163,54 @@ export default function HomePage() {
 
   return (
     <div className="relative z-10 flex min-h-screen flex-col items-center p-8">
+      {/* Top bar */}
+      {user && (
+        <div
+          className="fixed top-0 right-0 left-0 z-50 flex items-center justify-end px-6 py-3"
+          style={{
+            background: "linear-gradient(to bottom, var(--background), transparent)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <div
+            className="flex items-center gap-3 rounded-full px-4 py-1.5"
+            style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            <div
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold uppercase"
+              style={{
+                background: "var(--accent-gradient)",
+                color: "white",
+              }}
+            >
+              {user.email?.charAt(0) || "U"}
+            </div>
+            <span className="text-xs font-mono" style={{ color: "var(--foreground)" }}>
+              {user.email}
+            </span>
+            <div className="h-3 w-px" style={{ background: "rgba(255,255,255,0.15)" }} />
+            <button
+              onClick={() => signOut()}
+              className="flex cursor-pointer items-center gap-1.5 text-xs transition-colors hover:text-white"
+              style={{ color: "var(--muted)" }}
+              title="Sign out"
+            >
+              <LogOut size={12} />
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="flex w-full max-w-2xl flex-col items-center gap-10 pt-12"
       >
-        {/* User bar */}
-        {user && (
-          <div className="flex w-full items-center justify-end">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
-                {user.email}
-              </span>
-              <button
-                onClick={() => signOut()}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors hover:bg-white/5"
-                style={{ color: "var(--muted)" }}
-                title="Sign out"
-              >
-                <LogOut size={13} />
-                Sign out
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Header */}
         <div className="flex flex-col items-center gap-4 text-center">
           <motion.div

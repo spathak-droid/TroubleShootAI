@@ -80,7 +80,11 @@ async def _persist_error_to_db(bundle_id: str, error: str) -> None:
         logger.warning("Failed to persist error to DB: {}", exc)
 
 
-async def _run_pipeline(session: BundleSession, context_path: Path | None = None) -> None:
+async def _run_pipeline(
+    session: BundleSession,
+    context_text: str | None = None,
+    context_path: Path | None = None,
+) -> None:
     """Execute the full analysis pipeline as a background task.
 
     Stages: extract -> index -> triage -> AI analysis.
@@ -88,6 +92,7 @@ async def _run_pipeline(session: BundleSession, context_path: Path | None = None
 
     Args:
         session: The bundle session to run the pipeline on.
+        context_text: Optional ISV context as raw text from the user.
         context_path: Optional path to ISV context file.
     """
     try:
@@ -128,7 +133,7 @@ async def _run_pipeline(session: BundleSession, context_path: Path | None = None
         from bundle_analyzer.ai.context_injector import ContextInjector
         from bundle_analyzer.ai.orchestrator import AnalysisOrchestrator
 
-        context_injector = ContextInjector(context_path=context_path)
+        context_injector = ContextInjector(context_text=context_text, context_path=context_path)
         orchestrator = AnalysisOrchestrator()
 
         def progress_callback(stage: str, pct: float, message: str) -> None:
@@ -198,12 +203,20 @@ async def start_analysis(
             message="Analysis already complete",
         )
 
-    # Backward-compatible context resolution:
-    # - query parameter `?context=/path/to/file`
-    # - JSON body { "context": "/path/to/file" }
+    # Context resolution: query param or JSON body
     context_value = context if context is not None else (request.context if request else None)
-    context_path = Path(context_value) if context_value else None
-    asyncio.create_task(_run_pipeline(session, context_path))
+
+    # Determine if context is a file path or raw text
+    context_text: str | None = None
+    context_path: Path | None = None
+    if context_value:
+        p = Path(context_value)
+        if p.exists() and p.is_file():
+            context_path = p
+        else:
+            context_text = context_value
+
+    asyncio.create_task(_run_pipeline(session, context_text=context_text, context_path=context_path))
 
     return AnalysisStatus(
         bundle_id=session.id,

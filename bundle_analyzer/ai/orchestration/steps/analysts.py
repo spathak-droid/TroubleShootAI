@@ -95,7 +95,7 @@ async def run_single_analyst(
             pod_data = find_pod_json(target.namespace, target.pod_name, index)
             if not pod_data:
                 return empty_analyst_output("pod", f"Pod JSON not found for {target.namespace}/{target.pod_name}")
-            return await analyst.analyze(client, pod_data, index)
+            return await analyst.analyze(client, pod_data, index, context_injector=context_injector)
         elif analyst_type == "node":
             from bundle_analyzer.ai.analysts.node_analyst import NodeAnalyst
             analyst = NodeAnalyst()
@@ -106,11 +106,11 @@ async def run_single_analyst(
             node_data = find_node_json(target.node_name, index)
             if not node_data:
                 return empty_analyst_output("node", f"Node JSON not found for {target.node_name}")
-            return await analyst.analyze(client, node_data, index)
+            return await analyst.analyze(client, node_data, index, context_injector=context_injector)
         elif analyst_type == "config":
             from bundle_analyzer.ai.analysts.config_analyst import ConfigAnalyst
             analyst = ConfigAnalyst()
-            return await analyst.analyze(client, triage, index)
+            return await analyst.analyze(client, triage, index, context_injector=context_injector)
         else:
             raise ValueError(f"Unknown analyst type: {analyst_type}")
     except (ImportError, AttributeError) as exc:

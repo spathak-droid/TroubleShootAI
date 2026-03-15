@@ -20,21 +20,33 @@ class ContextInjector:
     decisions, known limitations, etc.).
     """
 
-    def __init__(self, context_path: Path | None = None) -> None:
+    def __init__(
+        self,
+        context_path: Path | None = None,
+        context_text: str | None = None,
+    ) -> None:
         """Initialize the context injector.
 
         Args:
             context_path: Path to an ISV context file. If *None* or if the
                 file does not exist, no context is injected.
+            context_text: Raw context string (takes priority over file path).
         """
-        self.context: str | None = self._load(context_path) if context_path else None
-        if self.context:
-            logger.info(
-                "Loaded ISV context from {} ({} chars)",
-                context_path,
-                len(self.context),
-            )
+        if context_text and context_text.strip():
+            self.context: str | None = context_text.strip()
+            logger.info("Loaded ISV context from text ({} chars)", len(self.context))
+        elif context_path:
+            self.context = self._load(context_path)
+            if self.context:
+                logger.info(
+                    "Loaded ISV context from {} ({} chars)",
+                    context_path,
+                    len(self.context),
+                )
+            else:
+                logger.debug("No ISV context loaded")
         else:
+            self.context = None
             logger.debug("No ISV context loaded")
 
     def inject(self, base_prompt: str) -> str:

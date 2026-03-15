@@ -41,6 +41,7 @@ class ConfigAnalyst:
         client: BundleAnalyzerClient,
         triage: TriageResult,
         index: BundleIndex,
+        context_injector: Any | None = None,
     ) -> AnalystOutput:
         """Run AI analysis on configuration issues.
 
@@ -48,6 +49,7 @@ class ConfigAnalyst:
             client: The AI client to use for completions.
             triage: Triage results containing config and drift findings.
             index: Bundle index for reading related data.
+            context_injector: Optional ISV context injector.
 
         Returns:
             AnalystOutput with findings, root cause, evidence, and fixes.
@@ -81,8 +83,11 @@ class ConfigAnalyst:
 
         for attempt in range(self.MAX_RETRIES):
             try:
+                system_prompt = CONFIG_SYSTEM_PROMPT
+                if context_injector is not None:
+                    system_prompt = context_injector.inject(system_prompt)
                 raw_response = await client.complete(
-                    system=CONFIG_SYSTEM_PROMPT,
+                    system=system_prompt,
                     user=user_prompt,
                 )
                 result = self._parse_response(raw_response)
