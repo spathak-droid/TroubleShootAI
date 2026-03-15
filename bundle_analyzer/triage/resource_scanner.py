@@ -128,6 +128,11 @@ class ResourceScanner:
                         ),
                         resource_type="memory",
                         severity="critical",
+                        source_file="cluster-resources/nodes.json",
+                        evidence_excerpt=(
+                            f"node={node_name}, memory_requests={reqs['memory'] / (1024**3):.1f}Gi, "
+                            f"allocatable={cap['memory'] / (1024**3):.1f}Gi, usage={pct:.0f}%"
+                        ),
                     ))
                 if cap["cpu"] > 0 and reqs["cpu"] > cap["cpu"]:
                     pct = (reqs["cpu"] / cap["cpu"]) * 100
@@ -143,6 +148,11 @@ class ResourceScanner:
                         ),
                         resource_type="cpu",
                         severity="critical",
+                        source_file="cluster-resources/nodes.json",
+                        evidence_excerpt=(
+                            f"node={node_name}, cpu_requests={reqs['cpu']:.2f}, "
+                            f"allocatable={cap['cpu']:.2f}, usage={pct:.0f}%"
+                        ),
                     ))
 
         logger.info("ResourceScanner found {} issues across {} pods", len(issues), len(pods))
@@ -213,6 +223,7 @@ class ResourceScanner:
         metadata = pod.get("metadata", {})
         namespace = metadata.get("namespace", "default")
         pod_name = metadata.get("name", "unknown")
+        source_file = f"pods/{namespace}/{pod_name}.json"
         spec = pod.get("spec", {})
         status = pod.get("status", {})
         qos_class = status.get("qosClass", "")
@@ -231,6 +242,8 @@ class ResourceScanner:
                 ),
                 resource_type="memory",
                 severity="warning",
+                source_file=source_file,
+                evidence_excerpt=f"status.qosClass=BestEffort",
             ))
 
         containers = spec.get("containers", [])
@@ -256,6 +269,8 @@ class ResourceScanner:
                     ),
                     resource_type="memory",
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=f"resources.limits absent for container {container_name}",
                 ))
 
             # No requests at all
@@ -271,6 +286,8 @@ class ResourceScanner:
                     ),
                     resource_type="memory",
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=f"resources.requests absent for container {container_name}",
                 ))
 
             # Accumulate requests for overcommitment check
@@ -291,7 +308,7 @@ class ResourceScanner:
             if node_capacity and requests:
                 self._check_exceeds_node(
                     requests, node_capacity, namespace, pod_name,
-                    container_name, issues,
+                    container_name, issues, source_file,
                 )
 
         return issues, pod_total
@@ -304,6 +321,7 @@ class ResourceScanner:
         pod_name: str,
         container_name: str,
         issues: list[ResourceIssue],
+        source_file: str,
     ) -> None:
         """Check if a container's requests exceed all nodes' allocatable."""
         if not node_capacity:
@@ -328,6 +346,11 @@ class ResourceScanner:
                         ),
                         resource_type="memory",
                         severity="critical",
+                        source_file=source_file,
+                        evidence_excerpt=(
+                            f"resources.requests.memory={requests['memory']}, "
+                            f"max_node_allocatable={max_node_memory / (1024**3):.1f}Gi"
+                        ),
                     ))
             except (ValueError, TypeError):
                 pass
@@ -348,6 +371,11 @@ class ResourceScanner:
                         ),
                         resource_type="cpu",
                         severity="critical",
+                        source_file=source_file,
+                        evidence_excerpt=(
+                            f"resources.requests.cpu={requests['cpu']}, "
+                            f"max_node_allocatable={max_node_cpu:.2f}"
+                        ),
                     ))
             except (ValueError, TypeError):
                 pass

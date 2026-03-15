@@ -162,6 +162,8 @@ class RBACScanner:
                                 error_message=f"Permission denied: {verb} {resource}",
                                 severity="warning",
                                 suggested_permission=f"{verb} {resource}",
+                                source_file=f"cluster-resources/auth-cani-list/{namespace}.json",
+                                evidence_excerpt=f"status.allowed=false, verb={verb}, resource={resource}",
                             ))
         elif isinstance(data, list):
             rules = data
@@ -192,6 +194,8 @@ class RBACScanner:
                                     ),
                                     severity="info",
                                     suggested_permission=f"{needed_verb} {resource}",
+                                    source_file=f"cluster-resources/auth-cani-list/{namespace}.json",
+                                    evidence_excerpt=f"verbs={verbs}, missing '{needed_verb}' for {resource}",
                                 ))
 
     def _scan_error_files(
@@ -267,6 +271,8 @@ class RBACScanner:
                 error_message=error_msg,
                 severity=severity,
                 suggested_permission=suggested,
+                source_file=f"cluster-resources/{file_stem}.json",
+                evidence_excerpt=error_msg[:200],
             ))
 
     def _scan_index_rbac_errors(
@@ -293,4 +299,6 @@ class RBACScanner:
                 error_message=error_msg,
                 severity=severity,
                 suggested_permission=suggested,
+                source_file="bundle-index/rbac-errors",
+                evidence_excerpt=error_msg[:200],
             ))

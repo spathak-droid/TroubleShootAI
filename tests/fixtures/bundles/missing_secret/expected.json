@@ -1,5 +1,8 @@
 {
   "expected_issue_types": ["CreateContainerConfigError"],
   "expected_min_count": 1,
-  "description": "Pod with CreateContainerConfigError due to missing secret"
+  "description": "Pod with CreateContainerConfigError due to missing secret",
+  "expected_resources": ["default/secret-app"],
+  "expected_confidence_range": {"CreateContainerConfigError": [0.9, 1.0]},
+  "expected_absent_types": ["OOMKilled", "ImagePullBackOff"]
 }

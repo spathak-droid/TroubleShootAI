@@ -95,13 +95,17 @@ class StorageScanner:
             phase = pvc.get("status", {}).get("phase", "")
             sc_name = pvc.get("spec", {}).get("storageClassName", "")
 
+            source = f"cluster-resources/pvcs/{namespace}.json"
+
             # PVC in Pending phase
             if phase == "Pending":
                 message = f"PVC '{pvc_name}' in namespace '{namespace}' is stuck in Pending phase."
                 conditions = pvc.get("status", {}).get("conditions", [])
+                cond_excerpt = f"status.phase=Pending"
                 for cond in conditions:
                     if cond.get("message"):
                         message += f" {cond['message']}"
+                        cond_excerpt += f", condition={cond.get('message', '')[:100]}"
                         break
                 issues.append(StorageIssue(
                     namespace=namespace,
@@ -110,6 +114,8 @@ class StorageScanner:
                     issue="pending",
                     message=message,
                     severity="critical",
+                    source_file=source,
+                    evidence_excerpt=cond_excerpt,
                 ))
 
             # PVC referencing a StorageClass that doesn't exist
@@ -124,6 +130,8 @@ class StorageScanner:
                         f"which does not exist. Available: {sorted(storage_class_names)}."
                     ),
                     severity="critical",
+                    source_file=source,
+                    evidence_excerpt=f"spec.storageClassName={sc_name}, not in available classes",
                 ))
 
         return issues
@@ -149,6 +157,8 @@ class StorageScanner:
                         "manual intervention."
                     ),
                     severity="warning",
+                    source_file="cluster-resources/pvs.json",
+                    evidence_excerpt=f"status.phase=Released",
                 ))
             elif phase == "Failed":
                 issues.append(StorageIssue(
@@ -161,6 +171,8 @@ class StorageScanner:
                         "has failed and manual recovery is needed."
                     ),
                     severity="critical",
+                    source_file="cluster-resources/pvs.json",
+                    evidence_excerpt=f"status.phase=Failed",
                 ))
 
         return issues

@@ -29,7 +29,7 @@ class Hypothesis(BaseModel):
     title: str
     description: str
     category: str  # "resource_exhaustion", "config_error", "image_error", "dependency_failure", "scheduling", "dns", "tls", "unknown"
-    confidence: float = Field(ge=0.0, le=1.0)  # 0.0-1.0
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)  # overwritten by scoring
     supporting_evidence: list[str] = Field(default_factory=list)
     contradicting_evidence: list[str] = Field(default_factory=list)
     affected_resources: list[str] = Field(default_factory=list)
@@ -61,21 +61,31 @@ class HypothesisEngine:
         """
         self._rules = rules if rules is not None else RCA_RULES
 
-    async def analyze(self, triage: TriageResult) -> list[Hypothesis]:
+    async def analyze(
+        self, triage: TriageResult, resource_graph: Any | None = None
+    ) -> list[Hypothesis]:
         """Generate and rank hypotheses from triage findings.
 
         Args:
             triage: Aggregated output from all triage scanners.
+            resource_graph: Optional ResourceGraph for dependency cascade analysis.
 
         Returns:
             A list of Hypothesis objects sorted by score (highest first).
         """
         raw_hypotheses = self._evaluate_rules(triage)
+
+        # Check for dependency cascades if graph is available
+        if resource_graph is not None:
+            cascade_hypotheses = self._check_cascades(resource_graph, triage)
+            raw_hypotheses.extend(cascade_hypotheses)
+
         if not raw_hypotheses:
             logger.info("No RCA rules matched — no hypotheses generated")
             return []
 
-        scored = self._score_hypotheses(raw_hypotheses, triage)
+        with_contradictions = self._detect_contradictions(raw_hypotheses, triage)
+        scored = self._score_hypotheses(with_contradictions, triage)
         resolved = self._resolve_conflicts(scored)
         ranked = sorted(resolved, key=lambda h: h.confidence, reverse=True)
 
@@ -115,6 +125,45 @@ class HypothesisEngine:
                 logger.warning(
                     "Rule '{}' failed during evaluation: {}", rule.name, exc
                 )
+
+        return hypotheses
+
+    def _detect_contradictions(
+        self, hypotheses: list[Hypothesis], triage: TriageResult
+    ) -> list[Hypothesis]:
+        """Add contradicting evidence to hypotheses where applicable.
+
+        Checks for logical contradictions between hypothesis claims and
+        actual cluster state, such as OOM hypotheses when no node reports
+        memory pressure, or dependency failure hypotheses when all
+        deployments are healthy.
+
+        Args:
+            hypotheses: List of hypotheses to check for contradictions.
+            triage: The triage result providing cluster state context.
+
+        Returns:
+            The same hypotheses with contradicting_evidence updated.
+        """
+        # Build quick lookups
+        bad_node_names = {n.node_name for n in triage.node_issues}
+        has_memory_pressure = any(n.condition == "MemoryPressure" for n in triage.node_issues)
+        all_deps_healthy = all(d.ready_replicas >= d.desired_replicas for d in triage.deployment_issues) if triage.deployment_issues else True
+
+        for hyp in hypotheses:
+            # OOM but no memory pressure on any node
+            if hyp.category == "resource_exhaustion" and "OOM" in hyp.title:
+                if not has_memory_pressure and triage.node_issues:
+                    hyp.contradicting_evidence.append(
+                        "No node reports MemoryPressure — OOM may be container-level, not node-level"
+                    )
+
+            # Dependency failure but all deployments healthy
+            if hyp.category == "dependency_failure":
+                if all_deps_healthy and not triage.deployment_issues:
+                    hyp.contradicting_evidence.append(
+                        "No deployment issues detected — dependency may be external to cluster"
+                    )
 
         return hypotheses
 
@@ -196,6 +245,57 @@ class HypothesisEngine:
             return 0.8  # reasonable default when we can't look up directly
 
         return sum(confidences) / len(confidences)
+
+    def _check_cascades(self, resource_graph: Any, triage: TriageResult) -> list[Hypothesis]:
+        """Generate hypotheses from dependency cascade analysis.
+
+        Collects failing resources from triage findings and uses the resource
+        graph to detect multi-hop dependency cascades that explain how a root
+        failure propagates through the cluster.
+
+        Args:
+            resource_graph: A ResourceGraph instance with find_dependency_cascades.
+            triage: The triage result providing failing resource context.
+
+        Returns:
+            List of Hypothesis objects for significant cascades (depth >= 2).
+        """
+        # Collect failing resources from triage
+        failing: set[str] = set()
+        for p in list(triage.critical_pods) + list(triage.warning_pods):
+            failing.add(f"{p.namespace}/{p.pod_name}")
+        for d in triage.deployment_issues:
+            if d.ready_replicas < d.desired_replicas:
+                failing.add(f"{d.namespace}/{d.name}")
+
+        if not failing or not hasattr(resource_graph, "find_dependency_cascades"):
+            return []
+
+        cascades = resource_graph.find_dependency_cascades(failing)
+        hypotheses: list[Hypothesis] = []
+
+        for cascade in cascades:
+            if cascade["depth"] < 2:
+                continue  # Only report multi-hop cascades
+            hypotheses.append(Hypothesis(
+                id=f"cascade-{cascade['root_cause'][:12]}",
+                title=f"Cascading Failure from {cascade['root_cause']}",
+                description=(
+                    f"A failure in {cascade['root_cause']} is cascading through "
+                    f"{cascade['depth']} dependent resources: {cascade['chain']}"
+                ),
+                category="dependency_failure",
+                confidence=0.7,
+                supporting_evidence=[f"Dependency chain: {cascade['chain']}"],
+                affected_resources=[cascade['root_cause']] + cascade['affected'],
+                suggested_fixes=[
+                    f"Investigate root cause: {cascade['root_cause']}",
+                    "Fix the root resource first — dependents may recover automatically",
+                ],
+                is_validated=False,
+            ))
+
+        return hypotheses
 
     def _resolve_conflicts(
         self, hypotheses: list[Hypothesis]

@@ -119,7 +119,7 @@ class SchedulingScanner:
                         issue_type=issue_type,
                         message=message[:500],
                         severity=severity,
-                        source_file=None,
+                        source_file=f"events/{namespace}.json",
                         evidence_excerpt=message[:300],
                         confidence=0.95,
                     )
@@ -161,7 +161,7 @@ class SchedulingScanner:
                         issue_type="unschedulable_node",
                         message=f"Node {name} is cordoned (spec.unschedulable=true)",
                         severity="warning",
-                        source_file=None,
+                        source_file="cluster-resources/nodes.json",
                         evidence_excerpt=f"spec.unschedulable: true on node {name}",
                         confidence=1.0,
                     )
@@ -224,7 +224,7 @@ class SchedulingScanner:
                             f"[{selector_str}] that no node satisfies"
                         ),
                         severity="critical",
-                        source_file=None,
+                        source_file=f"pods/{namespace}/{pod_name}.json",
                         evidence_excerpt=f"nodeSelector: {selector_str}",
                         confidence=0.85,
                     )

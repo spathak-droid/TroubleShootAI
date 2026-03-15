@@ -165,6 +165,8 @@ class QuotaScanner:
                 # Determine resource type category
                 resource_type = self._categorize_resource(resource_key)
 
+                quota_source = f"cluster-resources/resource-quota/{namespace}.json"
+
                 if used_val > limit_val:
                     issues.append(QuotaIssue(
                         namespace=namespace,
@@ -179,6 +181,8 @@ class QuotaScanner:
                             f"using {used_str} of {limit_str} ({usage_pct:.0f}%)."
                         ),
                         severity="critical",
+                        source_file=quota_source,
+                        evidence_excerpt=f"status.used.{resource_key}={used_str}, status.hard.{resource_key}={limit_str}",
                     ))
                 elif usage_pct >= 80:
                     issues.append(QuotaIssue(
@@ -194,6 +198,8 @@ class QuotaScanner:
                             f"using {used_str} of {limit_str} ({usage_pct:.0f}%)."
                         ),
                         severity="warning",
+                        source_file=quota_source,
+                        evidence_excerpt=f"status.used.{resource_key}={used_str}, status.hard.{resource_key}={limit_str}, usage={usage_pct:.0f}%",
                     ))
 
     def _scan_limit_ranges(
@@ -276,6 +282,7 @@ class QuotaScanner:
                             min_v = _parse_quantity(min_vals[resource_key])
                             max_v = _parse_quantity(max_vals[resource_key])
                             if min_v > max_v:
+                                lr_source = f"cluster-resources/limitranges/{namespace}.json"
                                 issues.append(QuotaIssue(
                                     namespace=namespace,
                                     resource_name=lr_name,
@@ -290,6 +297,8 @@ class QuotaScanner:
                                         f"for type '{limit_type}'."
                                     ),
                                     severity="critical",
+                                    source_file=lr_source,
+                                    evidence_excerpt=f"min.{resource_key}={min_vals[resource_key]}, max.{resource_key}={max_vals[resource_key]}",
                                 ))
                         except (ValueError, TypeError):
                             continue
@@ -301,6 +310,7 @@ class QuotaScanner:
                             limit_v = _parse_quantity(default_vals[resource_key])
                             req_v = _parse_quantity(default_req[resource_key])
                             if limit_v < req_v:
+                                lr_source = f"cluster-resources/limitranges/{namespace}.json"
                                 issues.append(QuotaIssue(
                                     namespace=namespace,
                                     resource_name=lr_name,
@@ -315,6 +325,8 @@ class QuotaScanner:
                                         f"for type '{limit_type}'."
                                     ),
                                     severity="warning",
+                                    source_file=lr_source,
+                                    evidence_excerpt=f"default.{resource_key}={default_vals[resource_key]}, defaultRequest.{resource_key}={default_req[resource_key]}",
                                 ))
                         except (ValueError, TypeError):
                             continue
@@ -368,6 +380,8 @@ class QuotaScanner:
                             f"unbounded resources."
                         ),
                         severity="info",
+                        source_file=f"cluster-resources/pods/{namespace}/",
+                        evidence_excerpt=f"{len(pod_files)} pods in namespace, no ResourceQuota found",
                     ))
 
     @staticmethod

@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "web-app-abc12-xyz34",
+    "namespace": "default",
+    "creationTimestamp": "2026-03-14T10:00:00Z"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "web",
+        "image": "myregistry/web-app:v2.1",
+        "resources": {"limits": {"memory": "256Mi"}}
+      }
+    ]
+  },
+  "status": {
+    "phase": "Running",
+    "containerStatuses": [
+      {
+        "name": "web",
+        "ready": false,
+        "restartCount": 12,
+        "state": {
+          "waiting": {
+            "reason": "CrashLoopBackOff",
+            "message": "back-off 5m0s restarting failed container=web"
+          }
+        },
+        "lastState": {
+          "terminated": {
+            "reason": "OOMKilled",
+            "exitCode": 137,
+            "finishedAt": "2026-03-14T10:30:00Z"
+          }
+        }
+      }
+    ]
+  }
+}

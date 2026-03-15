@@ -124,6 +124,9 @@ class ConfigScanner:
                             resource_name=cm_ref["name"],
                             referenced_by=pod_name,
                             issue="missing",
+                            confidence=0.95,
+                            source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                            evidence_excerpt=f"container.envFrom.configMapRef.name={cm_ref['name']} not found in namespace {namespace}",
                         ))
                 secret_ref = env_from.get("secretRef")
                 if secret_ref and secret_ref.get("name") and secret_ref["name"] not in secrets:
@@ -134,6 +137,9 @@ class ConfigScanner:
                             resource_name=secret_ref["name"],
                             referenced_by=pod_name,
                             issue="missing",
+                            confidence=0.95,
+                            source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                            evidence_excerpt=f"container.envFrom.secretRef.name={secret_ref['name']} not found in namespace {namespace}",
                         ))
 
             # env[].valueFrom
@@ -149,6 +155,9 @@ class ConfigScanner:
                                 resource_name=cm_key_ref["name"],
                                 referenced_by=pod_name,
                                 issue="missing",
+                                confidence=0.95,
+                                source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                                evidence_excerpt=f"container.env.valueFrom.configMapKeyRef.name={cm_key_ref['name']} not found in namespace {namespace}",
                             ))
                 secret_key_ref = value_from.get("secretKeyRef")
                 if secret_key_ref and secret_key_ref.get("name"):
@@ -160,6 +169,9 @@ class ConfigScanner:
                                 resource_name=secret_key_ref["name"],
                                 referenced_by=pod_name,
                                 issue="missing",
+                                confidence=0.95,
+                                source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                                evidence_excerpt=f"container.env.valueFrom.secretKeyRef.name={secret_key_ref['name']} not found in namespace {namespace}",
                             ))
 
         # Check volumes
@@ -173,6 +185,9 @@ class ConfigScanner:
                         resource_name=cm["name"],
                         referenced_by=pod_name,
                         issue="missing",
+                        confidence=0.95,
+                        source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                        evidence_excerpt=f"volumes.configMap.name={cm['name']} not found in namespace {namespace}",
                     ))
             secret = volume.get("secret")
             if secret and secret.get("secretName") and secret["secretName"] not in secrets:
@@ -183,6 +198,9 @@ class ConfigScanner:
                         resource_name=secret["secretName"],
                         referenced_by=pod_name,
                         issue="missing",
+                        confidence=0.95,
+                        source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                        evidence_excerpt=f"volumes.secret.secretName={secret['secretName']} not found in namespace {namespace}",
                     ))
             projected = volume.get("projected", {})
             for source in projected.get("sources", []):
@@ -195,6 +213,9 @@ class ConfigScanner:
                             resource_name=cm_proj["name"],
                             referenced_by=pod_name,
                             issue="missing",
+                            confidence=0.95,
+                            source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                            evidence_excerpt=f"volumes.projected.configMap.name={cm_proj['name']} not found in namespace {namespace}",
                         ))
                 secret_proj = source.get("secret")
                 if secret_proj and secret_proj.get("name") and secret_proj["name"] not in secrets:
@@ -205,6 +226,9 @@ class ConfigScanner:
                             resource_name=secret_proj["name"],
                             referenced_by=pod_name,
                             issue="missing",
+                            confidence=0.95,
+                            source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
+                            evidence_excerpt=f"volumes.projected.secret.name={secret_proj['name']} not found in namespace {namespace}",
                         ))
 
         return issues
@@ -246,6 +270,9 @@ class ConfigScanner:
                     referenced_by=svc_name,
                     issue="missing",
                     missing_key=None,
+                    confidence=0.7,
+                    source_file=f"cluster-resources/services/{namespace}.json",
+                    evidence_excerpt=f"Service {svc_name} endpoints have no ready addresses",
                 ))
 
         return issues

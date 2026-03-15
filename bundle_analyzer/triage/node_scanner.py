@@ -123,6 +123,9 @@ class NodeScanner:
                     memory_usage_pct=memory_pct,
                     cpu_usage_pct=cpu_pct,
                     message=cond_message,
+                    confidence=0.95 if cond_type != "PIDPressure" else 0.9,
+                    source_file="cluster-resources/nodes.json",
+                    evidence_excerpt=f"condition.type={cond_type}, status={cond_status}, message={cond_message}" if cond_message else f"condition.type={cond_type}, status={cond_status}",
                 ))
 
             # Ready condition — bad when False
@@ -133,6 +136,9 @@ class NodeScanner:
                     memory_usage_pct=memory_pct,
                     cpu_usage_pct=cpu_pct,
                     message=cond_message,
+                    confidence=0.85,
+                    source_file="cluster-resources/nodes.json",
+                    evidence_excerpt=f"condition.type=Ready, status={cond_status}, message={cond_message}" if cond_message else f"condition.type=Ready, status={cond_status}",
                 ))
 
         # Check unschedulable taint/spec
@@ -143,6 +149,9 @@ class NodeScanner:
                 memory_usage_pct=memory_pct,
                 cpu_usage_pct=cpu_pct,
                 message="Node is marked unschedulable",
+                confidence=1.0,
+                source_file="cluster-resources/nodes.json",
+                evidence_excerpt="spec.unschedulable=true",
             ))
 
         return issues

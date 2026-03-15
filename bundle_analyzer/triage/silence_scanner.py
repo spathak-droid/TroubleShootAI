@@ -92,6 +92,8 @@ class SilenceScanner:
             if has_log:
                 log_empty = self._log_is_empty(index, namespace, pod_name, container_name, previous=False)
 
+            expected_log_path = f"pod-logs/{namespace}/{pod_name}/{container_name}.log"
+
             if not has_log:
                 signals.append(SilenceSignal(
                     namespace=namespace,
@@ -105,6 +107,8 @@ class SilenceScanner:
                         "Container uses file-based logging only",
                     ],
                     note=f"Pod is Running but no log file found for container {container_name}",
+                    source_file=f"pods/{namespace}/{pod_name}.json",
+                    evidence_excerpt=f"phase=Running, expected log at {expected_log_path} not found",
                 ))
             elif log_empty:
                 signals.append(SilenceSignal(
@@ -119,6 +123,8 @@ class SilenceScanner:
                         "Container is idle/waiting",
                     ],
                     note=f"Pod is Running but log file for {container_name} is empty",
+                    source_file=expected_log_path,
+                    evidence_excerpt=f"phase=Running, log file exists but is empty (0 bytes)",
                 ))
 
             # Check for previous log when restarts > 0
@@ -137,6 +143,8 @@ class SilenceScanner:
                             f"Container has restarted {restart_count} times",
                         ],
                         note=f"Container has {restart_count} restarts but no previous log captured",
+                        source_file=f"pods/{namespace}/{pod_name}.json",
+                        evidence_excerpt=f"restartCount={restart_count}, previous log not found",
                     ))
 
         return signals
@@ -170,6 +178,8 @@ class SilenceScanner:
                     "ClusterRole/RoleBinding misconfigured",
                 ],
                 note=error,
+                source_file="bundle-index/rbac-errors",
+                evidence_excerpt=error[:200],
             ))
 
         return signals

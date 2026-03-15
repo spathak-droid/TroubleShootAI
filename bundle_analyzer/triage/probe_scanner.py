@@ -72,6 +72,7 @@ class ProbeScanner:
         metadata = pod.get("metadata", {})
         namespace = metadata.get("namespace", "default")
         pod_name = metadata.get("name", "unknown")
+        source_file = f"pods/{namespace}/{pod_name}.json"
         spec = pod.get("spec", {})
         status = pod.get("status", {})
 
@@ -95,17 +96,19 @@ class ProbeScanner:
                 issues.extend(
                     self._check_suspicious_path(
                         liveness, namespace, pod_name, container_name, "liveness",
+                        source_file,
                     )
                 )
                 issues.extend(
                     self._check_port_mismatch(
                         liveness, container_ports, namespace, pod_name,
-                        container_name, "liveness",
+                        container_name, "liveness", source_file,
                     )
                 )
                 issues.extend(
                     self._check_timing(
                         liveness, namespace, pod_name, container_name, "liveness",
+                        source_file,
                     )
                 )
 
@@ -114,12 +117,13 @@ class ProbeScanner:
                 issues.extend(
                     self._check_suspicious_path(
                         readiness, namespace, pod_name, container_name, "readiness",
+                        source_file,
                     )
                 )
                 issues.extend(
                     self._check_port_mismatch(
                         readiness, container_ports, namespace, pod_name,
-                        container_name, "readiness",
+                        container_name, "readiness", source_file,
                     )
                 )
 
@@ -137,6 +141,8 @@ class ProbeScanner:
                         "to avoid routing traffic to unready containers."
                     ),
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=f"livenessProbe present, readinessProbe absent",
                 ))
 
             # Same endpoint for liveness and readiness
@@ -144,6 +150,7 @@ class ProbeScanner:
                 issues.extend(
                     self._check_same_endpoint(
                         liveness, readiness, namespace, pod_name, container_name,
+                        source_file,
                     )
                 )
 
@@ -161,6 +168,8 @@ class ProbeScanner:
                         "probe to avoid being killed by the liveness probe during init."
                     ),
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=f"restartCount={restart_count}, startupProbe absent",
                 ))
 
         return issues
@@ -181,6 +190,7 @@ class ProbeScanner:
         pod_name: str,
         container_name: str,
         probe_type: str,
+        source_file: str,
     ) -> list[ProbeIssue]:
         """Check if a probe's httpGet path looks suspicious."""
         issues: list[ProbeIssue] = []
@@ -203,6 +213,8 @@ class ProbeScanner:
                         "This is likely a misconfiguration."
                     ),
                     severity="critical",
+                    source_file=source_file,
+                    evidence_excerpt=f"{probe_type}Probe.httpGet.path={path}",
                 ))
                 break  # One match is enough
 
@@ -216,6 +228,7 @@ class ProbeScanner:
         pod_name: str,
         container_name: str,
         probe_type: str,
+        source_file: str,
     ) -> list[ProbeIssue]:
         """Check if the probe targets a port the container doesn't expose."""
         issues: list[ProbeIssue] = []
@@ -244,6 +257,8 @@ class ProbeScanner:
                         f"but container only exposes ports {sorted(container_ports)}."
                     ),
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=f"{probe_type}Probe.port={probe_port}, containerPorts={sorted(container_ports)}",
                 ))
 
         return issues
@@ -255,6 +270,7 @@ class ProbeScanner:
         namespace: str,
         pod_name: str,
         container_name: str,
+        source_file: str,
     ) -> list[ProbeIssue]:
         """Check if liveness and readiness probes share the exact same endpoint."""
         issues: list[ProbeIssue] = []
@@ -279,6 +295,8 @@ class ProbeScanner:
                         "the pod to be killed AND removed from service."
                     ),
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=f"liveness==readiness: {l_key[2]}://*:{l_key[1]}{l_key[0]}",
                 ))
 
         l_tcp = liveness.get("tcpSocket", {})
@@ -296,6 +314,8 @@ class ProbeScanner:
                         f"port {l_tcp.get('port')}."
                     ),
                     severity="info",
+                    source_file=source_file,
+                    evidence_excerpt=f"liveness.tcpSocket.port==readiness.tcpSocket.port=={l_tcp.get('port')}",
                 ))
 
         return issues
@@ -307,6 +327,7 @@ class ProbeScanner:
         pod_name: str,
         container_name: str,
         probe_type: str,
+        source_file: str,
     ) -> list[ProbeIssue]:
         """Check if probe timing parameters are misconfigured."""
         issues: list[ProbeIssue] = []
@@ -332,6 +353,11 @@ class ProbeScanner:
                     "The probe can declare failure before the delay expires."
                 ),
                 severity="warning",
+                source_file=source_file,
+                evidence_excerpt=(
+                    f"failureThreshold={failure_threshold}, periodSeconds={period_seconds}, "
+                    f"initialDelaySeconds={initial_delay}"
+                ),
             ))
 
         return issues

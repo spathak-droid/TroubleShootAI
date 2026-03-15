@@ -1,5 +1,8 @@
 {
   "expected_issue_types": ["ImagePullBackOff"],
   "expected_min_count": 1,
-  "description": "Pod with ImagePullBackOff due to image not found"
+  "description": "Pod with ImagePullBackOff due to image not found",
+  "expected_resources": ["default/bad-image-pod"],
+  "expected_confidence_range": {"ImagePullBackOff": [0.9, 1.0]},
+  "expected_absent_types": ["OOMKilled", "CrashLoopBackOff"]
 }

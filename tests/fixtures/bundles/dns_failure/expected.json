@@ -1,5 +1,8 @@
 {
   "expected_issue_types": ["CrashLoopBackOff", "coredns_pod_failure"],
   "expected_min_count": 1,
-  "description": "CoreDNS pod in CrashLoopBackOff — should be detected by both PodScanner and DNSScanner"
+  "description": "CoreDNS pod in CrashLoopBackOff — detected by PodScanner and DNSScanner",
+  "expected_resources": ["kube-system/coredns-abc123"],
+  "expected_confidence_range": {"CrashLoopBackOff": [0.9, 1.0]},
+  "expected_absent_types": ["OOMKilled", "ImagePullBackOff"]
 }

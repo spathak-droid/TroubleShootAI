@@ -158,6 +158,9 @@ class DeploymentScanner:
                 ready_replicas=ready,
                 issue=issue_msg,
                 stuck_rollout=stuck_rollout,
+                confidence=0.9 if stuck_rollout else 0.8,
+                source_file=f"cluster-resources/deployments/{ns}.json",
+                evidence_excerpt=f"spec.replicas={desired}, status.readyReplicas={ready}, status.availableReplicas={available}",
             )
 
         return None

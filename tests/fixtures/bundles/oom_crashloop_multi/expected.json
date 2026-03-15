@@ -1,0 +1,9 @@
+{
+  "expected_issue_types": ["OOMKilled"],
+  "expected_min_count": 2,
+  "description": "Two pods OOM-killed in same deployment — triggers OOM and deployment-wide RCA rules",
+  "expected_resources": ["default/web-app-abc12-xyz34", "default/web-app-abc12-qrs56"],
+  "expected_confidence_range": {"OOMKilled": [0.9, 1.0]},
+  "expected_absent_types": ["ImagePullBackOff", "Pending"],
+  "expected_hypotheses": ["Container OOM Killed", "Deployment-Wide Failure (OOMKilled)"]
+}

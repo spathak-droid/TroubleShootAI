@@ -1,5 +1,8 @@
 {
   "expected_issue_types": ["OOMKilled"],
   "expected_min_count": 1,
-  "description": "OOM-killed pod in CrashLoopBackOff. Scanner reports OOMKilled as root cause (overrides CrashLoopBackOff)."
+  "description": "OOM-killed pod in CrashLoopBackOff. Scanner reports OOMKilled as root cause.",
+  "expected_resources": ["default/oom-app"],
+  "expected_confidence_range": {"OOMKilled": [0.9, 1.0]},
+  "expected_absent_types": ["ImagePullBackOff", "Pending"]
 }

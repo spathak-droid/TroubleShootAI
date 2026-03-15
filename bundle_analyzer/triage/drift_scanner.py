@@ -81,6 +81,8 @@ class DriftScanner:
                 updated = status.get("updatedReplicas") or 0
                 available = status.get("availableReplicas") or 0
 
+                source = f"cluster-resources/deployments/{namespace}.json"
+
                 if desired != ready:
                     issues.append(DriftIssue(
                         resource_type="Deployment",
@@ -90,6 +92,8 @@ class DriftScanner:
                         spec_value=desired,
                         status_value=ready,
                         description=f"Desired {desired} replicas but only {ready} ready",
+                        source_file=source,
+                        evidence_excerpt=f"spec.replicas={desired}, status.readyReplicas={ready}",
                     ))
 
                 if updated != desired:
@@ -101,6 +105,8 @@ class DriftScanner:
                         spec_value=desired,
                         status_value=updated,
                         description=f"Only {updated}/{desired} replicas updated to latest spec",
+                        source_file=source,
+                        evidence_excerpt=f"spec.replicas={desired}, status.updatedReplicas={updated}",
                     ))
             except Exception as exc:
                 logger.debug("Error checking deployment drift: {}", exc)
@@ -130,6 +136,8 @@ class DriftScanner:
                         spec_value=desired,
                         status_value=ready,
                         description=f"Desired {desired} replicas but only {ready} ready",
+                        source_file=f"cluster-resources/statefulsets/{namespace}.json",
+                        evidence_excerpt=f"spec.replicas={desired}, status.readyReplicas={ready}",
                     ))
             except Exception as exc:
                 logger.debug("Error checking statefulset drift: {}", exc)
@@ -175,6 +183,8 @@ class DriftScanner:
                         spec_value=selector,
                         status_value=0,
                         description=f"Service selector {selector} matches 0 pods",
+                        source_file=f"cluster-resources/services/{namespace}.json",
+                        evidence_excerpt=f"spec.selector={selector}, matching_pods=0",
                     ))
             except Exception as exc:
                 logger.debug("Error checking service drift: {}", exc)

@@ -570,5 +570,52 @@ class ResourceGraph:
         """All edges in the graph."""
         return list(self._edges)
 
+    def find_dependency_cascades(self, failing_resources: set[str]) -> list[dict]:
+        """Find dependency cascades starting from failing resources.
+
+        Walks the graph to identify resources that depend on failing resources,
+        creating cascade chains that explain how a root failure propagates.
+
+        Args:
+            failing_resources: Set of resource keys (e.g. "default/redis-master")
+                that are known to be failing.
+
+        Returns:
+            List of cascade dicts with root_cause, affected, chain, and depth keys.
+        """
+        cascades: list[dict] = []
+
+        for root in failing_resources:
+            if root not in self._nodes:
+                continue
+
+            # BFS to find all dependents
+            visited: set[str] = set()
+            queue: list[str] = [root]
+            chain: list[str] = []
+
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+                chain.append(current)
+
+                # Find resources that depend on current (reverse edges)
+                for edge in self._rev.get(current, []):
+                    if edge.source not in visited:
+                        queue.append(edge.source)
+
+            affected = [r for r in chain if r != root]
+            if affected:
+                cascades.append({
+                    "root_cause": root,
+                    "affected": affected,
+                    "chain": " → ".join(chain),
+                    "depth": len(chain) - 1,
+                })
+
+        return cascades
+
     def __repr__(self) -> str:
         return f"ResourceGraph(nodes={len(self._nodes)}, edges={len(self._edges)})"

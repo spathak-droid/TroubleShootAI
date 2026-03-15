@@ -160,6 +160,8 @@ class NetworkPolicyScanner:
 
             # Detect deny-all ingress: policyTypes includes Ingress but
             # ingress rules list is empty or None
+            np_source = f"cluster-resources/network-policy/{namespace}.json"
+
             if "Ingress" in policy_types and not ingress_rules:
                 # Check if ingress key exists but is empty list vs not present
                 if ingress_rules is not None or "ingress" not in spec:
@@ -177,6 +179,8 @@ class NetworkPolicyScanner:
                             f"Affected pods: {len(affected)}."
                         ),
                         severity="warning",
+                        source_file=np_source,
+                        evidence_excerpt=f"policyTypes=[Ingress], ingress rules empty/absent",
                     ))
 
             # Detect deny-all egress: policyTypes includes Egress but
@@ -197,6 +201,8 @@ class NetworkPolicyScanner:
                             f"connections. Affected pods: {len(affected)}."
                         ),
                         severity="warning",
+                        source_file=np_source,
+                        evidence_excerpt=f"policyTypes=[Egress], egress rules empty/absent",
                     ))
 
             # Detect orphaned policies: selector matches no pods
@@ -217,6 +223,8 @@ class NetworkPolicyScanner:
                             f"existing pods. This policy has no effect."
                         ),
                         severity="info",
+                        source_file=np_source,
+                        evidence_excerpt=f"podSelector.matchLabels={match_labels}, matched_pods=0",
                     ))
 
     def _find_affected_pods(
@@ -299,4 +307,6 @@ class NetworkPolicyScanner:
                         f"is unrestricted."
                     ),
                     severity="info",
+                    source_file=f"cluster-resources/pods/{namespace}/",
+                    evidence_excerpt=f"{len(pod_files)} pods in namespace, no NetworkPolicy found",
                 ))

@@ -75,6 +75,7 @@ class IngressScanner:
         for ingress in ingresses:
             ingress_name = ingress.get("metadata", {}).get("name", "unknown")
             spec = ingress.get("spec", {})
+            source = f"cluster-resources/ingress/{namespace}.json"
 
             # Check default backend
             default_backend = spec.get("defaultBackend") or spec.get("backend")
@@ -82,7 +83,7 @@ class IngressScanner:
                 issues.extend(
                     self._check_backend(
                         default_backend, ingress_name, namespace,
-                        service_map, "default backend",
+                        service_map, "default backend", source,
                     )
                 )
 
@@ -95,7 +96,7 @@ class IngressScanner:
                     issues.extend(
                         self._check_backend(
                             backend, ingress_name, namespace,
-                            service_map, f"path '{path_str}'",
+                            service_map, f"path '{path_str}'", source,
                         )
                     )
 
@@ -113,6 +114,8 @@ class IngressScanner:
                             f"'{namespace}'."
                         ),
                         severity="critical",
+                        source_file=source,
+                        evidence_excerpt=f"spec.tls[].secretName={secret_name}, secret not found",
                     ))
 
         return issues
@@ -124,6 +127,7 @@ class IngressScanner:
         namespace: str,
         service_map: dict[str, dict],
         context: str,
+        source_file: str,
     ) -> list[IngressIssue]:
         """Check a single backend reference for issues."""
         issues: list[IngressIssue] = []
@@ -155,6 +159,8 @@ class IngressScanner:
                     f"'{svc_name}' which does not exist in namespace '{namespace}'."
                 ),
                 severity="critical",
+                source_file=source_file,
+                evidence_excerpt=f"backend.service.name={svc_name}, service not found in namespace",
             ))
             return issues
 
@@ -185,6 +191,11 @@ class IngressScanner:
                         f"but service only exposes: {', '.join(available)}."
                     ),
                     severity="warning",
+                    source_file=source_file,
+                    evidence_excerpt=(
+                        f"backend.port={port_number or port_name}, "
+                        f"service.ports=[{', '.join(available)}]"
+                    ),
                 ))
 
         return issues

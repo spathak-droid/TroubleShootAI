@@ -1,5 +1,8 @@
 {
   "expected_issue_types": ["Pending"],
   "expected_min_count": 1,
-  "description": "Pod pending with volume mount failure. The Pending status is detected by PodScanner due to the pod being stuck in Pending phase well past the threshold."
+  "description": "Pod pending with volume mount failure",
+  "expected_resources": ["default/db-pod"],
+  "expected_confidence_range": {"Pending": [0.5, 1.0]},
+  "expected_absent_types": ["OOMKilled", "CrashLoopBackOff"]
 }

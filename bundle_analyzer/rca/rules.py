@@ -68,7 +68,8 @@ def _match_oom(triage: TriageResult) -> list[list[Any]]:
     """Find pods crash-looping with exit code 137 (OOM killed)."""
     hits = [
         p for p in _all_pods(triage)
-        if p.issue_type == "CrashLoopBackOff" and p.exit_code == 137
+        if (p.issue_type == "OOMKilled")
+        or (p.issue_type == "CrashLoopBackOff" and p.exit_code == 137)
     ]
     return [hits] if hits else []
 
@@ -504,6 +505,7 @@ def _hyp_deployment_wide(groups: list[list[Any]]) -> dict[str, Any]:
             f"cause rather than individual pod issues."
         ),
         "category": "config_error",
+        "confidence": 0.8,
         "supporting_evidence": [
             f"{p.namespace}/{p.pod_name}: {p.issue_type} "
             f"(exit_code={p.exit_code}, restarts={p.restart_count})"
@@ -515,6 +517,242 @@ def _hyp_deployment_wide(groups: list[list[Any]]) -> dict[str, Any]:
             "Check the deployment spec for recent changes (image, env, config)",
             "Review the deployment rollout history",
             "Consider rolling back to the previous revision",
+        ],
+        "is_validated": True,
+    }
+
+
+# ===========================================================================
+# Rule 10: DNS cascade (CoreDNS pod failure → app pods failing)
+# ===========================================================================
+
+def _match_dns_cascade(triage: TriageResult) -> list[list[Any]]:
+    """Find DNS failures that could cascade to app pods."""
+    from bundle_analyzer.models.triage import DNSIssue
+    dns_issues: list[DNSIssue] = getattr(triage, "dns_issues", [])
+    if not dns_issues:
+        return []
+    # Find app pods that are also failing
+    failing_pods = [
+        p for p in _all_pods(triage)
+        if p.issue_type in ("CrashLoopBackOff", "Pending")
+        and any(kw in (p.message or "").lower() for kw in ("dns", "resolve", "lookup", "connection"))
+    ]
+    if not failing_pods:
+        # Still return DNS issues alone as a hypothesis
+        return [[dns_issues, []]]
+    return [[dns_issues, failing_pods]]
+
+def _hyp_dns_cascade(groups: list[list[Any]]) -> dict[str, Any]:
+    dns_issues = groups[0][0]
+    failing_pods = groups[0][1]
+    evidence = [f"DNS issue: {d.resource_name} — {d.message}" for d in dns_issues]
+    evidence += [f"{p.namespace}/{p.pod_name}: {p.issue_type} — {p.message}" for p in failing_pods[:5]]
+    resources = [f"{d.namespace}/{d.resource_name}" for d in dns_issues]
+    resources += [f"{p.namespace}/{p.pod_name}" for p in failing_pods]
+    return {
+        "id": _gen_id(),
+        "title": "DNS Resolution Failure Cascade",
+        "description": "CoreDNS or DNS resolution is failing, which may cascade to application pods that depend on service discovery.",
+        "category": "dns",
+        "supporting_evidence": evidence,
+        "contradicting_evidence": [],
+        "affected_resources": resources,
+        "suggested_fixes": [
+            "Check CoreDNS pod health and logs",
+            "Verify kube-dns service endpoints are populated",
+            "Check for DNS policy or NetworkPolicy blocking DNS traffic on port 53",
+        ],
+        "is_validated": True,
+    }
+
+
+# ===========================================================================
+# Rule 11: TLS blocking (expired cert → connection failures)
+# ===========================================================================
+
+def _match_tls_blocking(triage: TriageResult) -> list[list[Any]]:
+    """Find TLS cert issues that could block connections."""
+    from bundle_analyzer.models.triage import TLSIssue
+    tls_issues: list[TLSIssue] = getattr(triage, "tls_issues", [])
+    if not tls_issues:
+        return []
+    return [[tls_issues]]
+
+def _hyp_tls_blocking(groups: list[list[Any]]) -> dict[str, Any]:
+    tls_issues = groups[0]
+    return {
+        "id": _gen_id(),
+        "title": "TLS Certificate Issue Blocking Connections",
+        "description": "Expired, invalid, or unknown-authority certificates are detected, which can block HTTPS connections and cause cascading failures.",
+        "category": "tls",
+        "supporting_evidence": [f"{t.namespace}/{t.resource_name}: {t.issue_type} — {t.message}" for t in tls_issues],
+        "contradicting_evidence": [],
+        "affected_resources": [f"{t.namespace}/{t.resource_name}" for t in tls_issues],
+        "suggested_fixes": [
+            "Renew expired certificates",
+            "Check cert-manager status and issuer configuration",
+            "Verify CA trust chain is properly configured",
+        ],
+        "is_validated": True,
+    }
+
+
+# ===========================================================================
+# Rule 12: Storage → Pod cascade (PVC pending → pod stuck)
+# ===========================================================================
+
+def _match_storage_cascade(triage: TriageResult) -> list[list[Any]]:
+    """Find storage issues that cause pods to be stuck."""
+    storage_issues: list[StorageIssue] = getattr(triage, "storage_issues", [])
+    if not storage_issues:
+        return []
+    pending_pods = [p for p in _all_pods(triage) if p.issue_type in ("Pending", "FailedMount")]
+    return [[storage_issues, pending_pods]] if pending_pods or storage_issues else []
+
+def _hyp_storage_cascade(groups: list[list[Any]]) -> dict[str, Any]:
+    storage_issues = groups[0][0]
+    pending_pods = groups[0][1]
+    evidence = [f"Storage: {s.namespace}/{s.resource_name} — {s.issue} ({s.message})" for s in storage_issues]
+    evidence += [f"{p.namespace}/{p.pod_name}: {p.issue_type} — {p.message}" for p in pending_pods[:5]]
+    resources = [f"{s.namespace}/{s.resource_name}" for s in storage_issues]
+    resources += [f"{p.namespace}/{p.pod_name}" for p in pending_pods]
+    return {
+        "id": _gen_id(),
+        "title": "Storage Issue Causing Pod Scheduling Failure",
+        "description": "PVC/PV issues are preventing pods from being scheduled or starting. Pods waiting for volumes will remain in Pending state.",
+        "category": "dependency_failure",
+        "supporting_evidence": evidence,
+        "contradicting_evidence": [],
+        "affected_resources": resources,
+        "suggested_fixes": [
+            "Check PVC status and storage class provisioner logs",
+            "Verify the StorageClass exists and is functioning",
+            "Check if the volume has been released and needs manual reclaim",
+        ],
+        "is_validated": True,
+    }
+
+
+# ===========================================================================
+# Rule 13: Quota → Scheduling failure
+# ===========================================================================
+
+def _match_quota_scheduling(triage: TriageResult) -> list[list[Any]]:
+    """Find quota limits causing scheduling failures."""
+    from bundle_analyzer.models.triage import QuotaIssue
+    quota_issues: list[QuotaIssue] = getattr(triage, "quota_issues", [])
+    exceeded = [q for q in quota_issues if q.issue_type in ("quota_exceeded", "quota_near_limit")]
+    if not exceeded:
+        return []
+    pending = [p for p in _all_pods(triage) if p.issue_type == "Pending"]
+    return [[exceeded, pending]]
+
+def _hyp_quota_scheduling(groups: list[list[Any]]) -> dict[str, Any]:
+    quota_issues = groups[0][0]
+    pending_pods = groups[0][1]
+    evidence = [f"Quota: {q.namespace}/{q.resource_name} — {q.issue_type} ({q.message})" for q in quota_issues]
+    evidence += [f"{p.namespace}/{p.pod_name}: Pending — {p.message}" for p in pending_pods[:5]]
+    resources = [f"{q.namespace}/{q.resource_name}" for q in quota_issues]
+    resources += [f"{p.namespace}/{p.pod_name}" for p in pending_pods]
+    return {
+        "id": _gen_id(),
+        "title": "Resource Quota Preventing Pod Scheduling",
+        "description": "Resource quotas are exceeded or near limit, which may prevent new pods from being scheduled in the affected namespaces.",
+        "category": "scheduling",
+        "supporting_evidence": evidence,
+        "contradicting_evidence": [],
+        "affected_resources": resources,
+        "suggested_fixes": [
+            "Increase resource quotas for the namespace",
+            "Reduce resource requests on existing workloads",
+            "Delete unused pods/deployments to free up quota",
+        ],
+        "is_validated": True,
+    }
+
+
+# ===========================================================================
+# Rule 14: Network policy isolation
+# ===========================================================================
+
+def _match_network_isolation(triage: TriageResult) -> list[list[Any]]:
+    """Find network policies that may be isolating pods."""
+    from bundle_analyzer.models.triage import NetworkPolicyIssue
+    np_issues: list[NetworkPolicyIssue] = getattr(triage, "network_policy_issues", [])
+    deny_all = [np for np in np_issues if np.issue_type in ("deny_all_ingress", "deny_all_egress")]
+    if not deny_all:
+        return []
+    connection_errors = [
+        p for p in _all_pods(triage)
+        if p.issue_type == "CrashLoopBackOff"
+        and any(kw in (p.message or "").lower() for kw in ("connection refused", "timeout", "unreachable"))
+    ]
+    return [[deny_all, connection_errors]] if deny_all else []
+
+def _hyp_network_isolation(groups: list[list[Any]]) -> dict[str, Any]:
+    np_issues = groups[0][0]
+    conn_pods = groups[0][1]
+    evidence = [f"NetworkPolicy: {n.namespace}/{n.policy_name} — {n.issue_type}" for n in np_issues]
+    evidence += [f"{p.namespace}/{p.pod_name}: {p.message}" for p in conn_pods[:5]]
+    resources = [f"{n.namespace}/{n.policy_name}" for n in np_issues]
+    resources += [f"{p.namespace}/{p.pod_name}" for p in conn_pods]
+    return {
+        "id": _gen_id(),
+        "title": "Network Policy May Be Isolating Pods",
+        "description": "Deny-all network policies detected that may be blocking legitimate traffic and causing connection failures.",
+        "category": "dependency_failure",
+        "supporting_evidence": evidence,
+        "contradicting_evidence": [],
+        "affected_resources": resources,
+        "suggested_fixes": [
+            "Review deny-all network policies and add appropriate allow rules",
+            "Check if pods need ingress/egress rules for their dependencies",
+            "Verify DNS traffic (port 53) is allowed through network policies",
+        ],
+        "is_validated": True,
+    }
+
+
+# ===========================================================================
+# Rule 15: Config drift → restart loop
+# ===========================================================================
+
+def _match_config_drift_restart(triage: TriageResult) -> list[list[Any]]:
+    """Find config issues coinciding with crash loops."""
+    config_issues: list[ConfigIssue] = getattr(triage, "config_issues", [])
+    if not config_issues:
+        return []
+    # Find pods that reference missing configs AND are crashing
+    config_pods = {c.referenced_by for c in config_issues}
+    crashing = [
+        p for p in _all_pods(triage)
+        if p.issue_type in ("CrashLoopBackOff", "CreateContainerConfigError")
+        and p.pod_name in config_pods
+    ]
+    if not crashing:
+        return []
+    return [[config_issues, crashing]]
+
+def _hyp_config_drift_restart(groups: list[list[Any]]) -> dict[str, Any]:
+    config_issues = groups[0][0]
+    crashing_pods = groups[0][1]
+    evidence = [f"Missing {c.resource_type}: {c.namespace}/{c.resource_name} (referenced by {c.referenced_by})" for c in config_issues]
+    evidence += [f"{p.namespace}/{p.pod_name}: {p.issue_type} — {p.message}" for p in crashing_pods[:5]]
+    resources = [f"{c.namespace}/{c.referenced_by}" for c in config_issues]
+    resources += [f"{p.namespace}/{p.pod_name}" for p in crashing_pods]
+    return {
+        "id": _gen_id(),
+        "title": "Missing Configuration Causing Container Failures",
+        "description": "Pods are crash-looping or failing to start because referenced ConfigMaps or Secrets are missing. This often happens after config drift or incomplete deployments.",
+        "category": "config_error",
+        "supporting_evidence": evidence,
+        "contradicting_evidence": [],
+        "affected_resources": list(set(resources)),
+        "suggested_fixes": [
+            "Create or restore the missing ConfigMap/Secret",
+            "Check if the resource was accidentally deleted or not deployed",
+            "Verify deployment manifests include all required config resources",
         ],
         "is_validated": True,
     }
@@ -565,5 +803,35 @@ RCA_RULES: list[RCARule] = [
         name="deployment_wide_failure",
         match=_match_deployment_wide,
         hypothesis_template=_hyp_deployment_wide,
+    ),
+    RCARule(
+        name="dns_cascade",
+        match=_match_dns_cascade,
+        hypothesis_template=_hyp_dns_cascade,
+    ),
+    RCARule(
+        name="tls_blocking",
+        match=_match_tls_blocking,
+        hypothesis_template=_hyp_tls_blocking,
+    ),
+    RCARule(
+        name="storage_cascade",
+        match=_match_storage_cascade,
+        hypothesis_template=_hyp_storage_cascade,
+    ),
+    RCARule(
+        name="quota_scheduling",
+        match=_match_quota_scheduling,
+        hypothesis_template=_hyp_quota_scheduling,
+    ),
+    RCARule(
+        name="network_isolation",
+        match=_match_network_isolation,
+        hypothesis_template=_hyp_network_isolation,
+    ),
+    RCARule(
+        name="config_drift_restart",
+        match=_match_config_drift_restart,
+        hypothesis_template=_hyp_config_drift_restart,
     ),
 ]

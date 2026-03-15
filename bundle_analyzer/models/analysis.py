@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from .ai_output import Finding, HistoricalEvent, PredictedFailure, UncertaintyGap
@@ -35,3 +37,4 @@ class AnalysisResult(BaseModel):
     sanitization_summary: str = ""  # e.g. "Redacted 47 patterns (23 credentials, 12 PII)"
     evaluation: EvaluationResult | None = None
     hypotheses: list[dict] = Field(default_factory=list)  # ranked RCA hypotheses
+    analysis_quality: Literal["high", "medium", "degraded"] = "medium"

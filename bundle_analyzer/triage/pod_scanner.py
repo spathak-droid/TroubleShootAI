@@ -105,7 +105,7 @@ class PodScanner:
 
         # Check for Pending pods
         if phase == "Pending":
-            issue = self._check_pending(metadata, status, namespace, pod_name)
+            issue = self._check_pending(metadata, status, namespace, pod_name, source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json")
             if issue is not None:
                 issues.append(issue)
 
@@ -172,7 +172,7 @@ class PodScanner:
 
             # Higher confidence if we have clear condition messages
             confidence = 0.9 if message_parts else 0.6
-            evidence = "; ".join(message_parts) if message_parts else None
+            evidence = "; ".join(message_parts) if message_parts else f"status.phase=Pending, age={int(age_seconds)}s"
 
             return PodIssue(
                 namespace=namespace,
@@ -277,6 +277,7 @@ class PodScanner:
             log_path=log_path,
             previous_log_path=previous_log_path,
             confidence=confidence,
+            source_file=f"cluster-resources/pods/{namespace}/{pod_name}.json",
             evidence_excerpt=message if message else None,
         ))
 

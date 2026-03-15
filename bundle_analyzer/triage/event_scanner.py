@@ -147,6 +147,12 @@ class EventScanner:
                     escalation_type=escalation_type,  # type: ignore[arg-type]
                     message=message,
                     severity=severity,  # type: ignore[arg-type]
+                    source_file=f"events/{namespace}.json",
+                    evidence_excerpt=(
+                        f"{kind}/{name}: {total_count} events, "
+                        f"reasons=[{reason_summary}], "
+                        f"types=[{', '.join(detected_types)}]"
+                    ),
                 )
             )
 

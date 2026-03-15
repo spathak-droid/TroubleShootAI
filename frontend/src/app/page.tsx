@@ -2,8 +2,9 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { Upload, CheckCircle, Loader2, FileArchive, ArrowRight, Sparkles } from "lucide-react";
+import { Upload, CheckCircle, Loader2, ArrowRight, Sparkles } from "lucide-react";
 import { uploadBundle } from "@/lib/api";
 
 export default function HomePage() {
@@ -77,10 +78,16 @@ export default function HomePage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="flex h-16 w-16 items-center justify-center rounded-2xl"
-            style={{ background: "var(--accent-gradient)", boxShadow: "0 0 40px rgba(99, 102, 241, 0.3)" }}
+            className="flex h-16 w-16 items-center justify-center"
           >
-            <FileArchive size={32} color="white" />
+            <Image
+              src="/logo.svg"
+              alt="Bundle threat analyzer logo"
+              width={64}
+              height={64}
+              priority
+              className="h-16 w-16 object-contain"
+            />
           </motion.div>
           <div>
             <h1
@@ -93,7 +100,13 @@ export default function HomePage() {
               className="mt-2 text-sm"
               style={{ color: "var(--muted)" }}
             >
-              AI-powered Kubernetes support bundle forensics
+              AI-powered support bundle forensics
+            </p>
+            <p
+              className="mt-1 text-sm font-medium"
+              style={{ color: "var(--accent-light)" }}
+            >
+              from log chaos to log structure
             </p>
           </div>
         </div>

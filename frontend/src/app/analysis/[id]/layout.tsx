@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
@@ -11,7 +12,6 @@ import {
   ShieldCheck,
   Wrench,
   Activity,
-  Cpu,
 } from "lucide-react";
 
 interface NavItem {
@@ -76,11 +76,14 @@ export default function AnalysisLayout({
 
         {/* Logo area */}
         <div className="mb-8 flex items-center gap-3 px-5 pt-2">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-xl"
-            style={{ background: "var(--accent-gradient)", boxShadow: "0 0 20px rgba(99, 102, 241, 0.2)" }}
-          >
-            <Cpu size={16} color="white" />
+          <div className="flex h-9 w-9 items-center justify-center">
+            <Image
+              src="/logo.svg"
+              alt="Bundle analyzer logo"
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
+            />
           </div>
           <div className="flex flex-col">
             <span
