@@ -13,7 +13,10 @@ import {
   GitCompare,
   ShieldCheck,
   Layers,
+  Search,
+  X,
 } from "lucide-react";
+import { useDebounce } from "../hooks/useDebounce";
 import { getAnalysis } from "@/lib/api";
 import { buildAIFindings } from "../shared";
 import type {
@@ -75,8 +78,20 @@ export default function ValidationPage({
   const { id } = use(params);
   const bundleId = typeof id === "string" ? id : null;
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedQuery = useDebounce(searchQuery, 300);
 
   const toggle = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
+
+  function matchesSearch(fields: (string | string[] | null | undefined)[]): boolean {
+    if (!debouncedQuery) return true;
+    const q = debouncedQuery.toLowerCase();
+    return fields.some(f => {
+      if (!f) return false;
+      if (Array.isArray(f)) return f.some(line => line.toLowerCase().includes(q));
+      return f.toLowerCase().includes(q);
+    });
+  }
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["analysis", bundleId],
@@ -160,6 +175,36 @@ export default function ValidationPage({
   const uncertaintyGaps = (raw.uncertainty_gaps ?? raw.uncertainty ?? []) as UncertaintyGap[];
   const hypotheses = (raw.hypotheses ?? []) as Hypothesis[];
 
+  // Filtered data based on search query
+  const fPodIssues = debouncedQuery ? podIssues.filter(p => matchesSearch([p.namespace, p.pod_name, p.issue_type, p.message, p.evidence_excerpt])) : podIssues;
+  const fCrashContexts = debouncedQuery ? crashContexts.filter(c => matchesSearch([c.namespace, c.pod_name, c.crash_pattern, c.message, c.container_name, c.last_log_lines, c.previous_log_lines])) : crashContexts;
+  const fEventEscalations = debouncedQuery ? eventEscalations.filter(e => matchesSearch([e.namespace, e.involved_object_name, e.message, e.event_reasons])) : eventEscalations;
+  const fNodeIssues = debouncedQuery ? nodeIssues.filter(n => matchesSearch([n.node_name, n.condition, n.message])) : nodeIssues;
+  const fDeploymentIssues = debouncedQuery ? deploymentIssues.filter(d => matchesSearch([d.namespace, d.name, d.issue])) : deploymentIssues;
+  const fConfigIssues = debouncedQuery ? configIssues.filter(c => matchesSearch([c.namespace, c.resource_name, c.resource_type, c.referenced_by, c.issue])) : configIssues;
+  const fDriftIssues = debouncedQuery ? driftIssues.filter(d => matchesSearch([d.namespace, d.resource_name, d.name, d.message, d.description, d.resource_type])) : driftIssues;
+  const fRbacIssues = debouncedQuery ? rbacIssues.filter(r => matchesSearch([r.namespace, r.resource_type, r.error_message, r.suggested_permission])) : rbacIssues;
+  const fQuotaIssues = debouncedQuery ? quotaIssues.filter(q => matchesSearch([q.namespace, q.resource_name, q.issue_type, q.message, q.resource_type])) : quotaIssues;
+  const fNetworkPolicyIssues = debouncedQuery ? networkPolicyIssues.filter(n => matchesSearch([n.namespace, n.policy_name, n.issue_type, n.message])) : networkPolicyIssues;
+  const fDnsIssues = debouncedQuery ? dnsIssues.filter(d => matchesSearch([d.namespace, d.resource_name, d.issue_type, d.message])) : dnsIssues;
+  const fTlsIssues = debouncedQuery ? tlsIssues.filter(t => matchesSearch([t.namespace, t.resource_name, t.issue_type, t.message])) : tlsIssues;
+  const fSchedulingIssues = debouncedQuery ? schedulingIssues.filter(s => matchesSearch([s.namespace, s.pod_name, s.issue_type, s.message])) : schedulingIssues;
+  const fLogDiagnoses = debouncedQuery ? logDiagnoses.filter(l => matchesSearch([l.namespace, l.pod_name, l.diagnosis, l.key_log_line, l.root_cause_category])) : logDiagnoses;
+  const fK8sEvents = debouncedQuery ? k8sEvents.filter(e => matchesSearch([e.namespace, e.reason, e.message, e.involved_object_name])) : k8sEvents;
+  const fSilenceSignals = debouncedQuery ? silenceSignals.filter(s => matchesSearch([s.namespace, s.pod_name, s.signal_type, s.message, s.resource])) : silenceSignals;
+  const fAiFindings = debouncedQuery ? aiFindings.filter(f => matchesSearch([f.title, f.root_cause, f.severity, f.symptom, f.category, ...f.evidence.map(e => e.content)])) : aiFindings;
+  const fPodAnomalies = debouncedQuery ? podAnomalies.filter(a => matchesSearch([a.failing_pod, a.anomaly_type, a.description, a.comparison_group])) : podAnomalies;
+  const fCoverageGaps = debouncedQuery ? coverageGaps.filter(g => matchesSearch([g.area, g.why_it_matters, g.data_path])) : coverageGaps;
+  const fUncertaintyGaps = debouncedQuery ? uncertaintyGaps.filter(u => matchesSearch([u.area, u.question, u.description, u.reason, u.impact])) : uncertaintyGaps;
+
+  const allFilteredEmpty = debouncedQuery && [
+    fPodIssues, fCrashContexts, fEventEscalations, fNodeIssues,
+    fDeploymentIssues, fConfigIssues, fDriftIssues, fRbacIssues,
+    fQuotaIssues, fNetworkPolicyIssues, fDnsIssues, fTlsIssues,
+    fSchedulingIssues, fLogDiagnoses, fK8sEvents, fSilenceSignals,
+    fAiFindings, fPodAnomalies, fCoverageGaps, fUncertaintyGaps,
+  ].every(arr => arr.length === 0);
+
   // Count active sections for the overview
   const sectionCounts = [
     { label: "AI Findings", count: aiFindings.length, icon: Brain, color: "var(--accent-light)" },
@@ -188,11 +233,35 @@ export default function ValidationPage({
         animate={{ opacity: 1 }}
       >
         <h1
-          className="text-lg font-semibold mr-auto"
+          className="text-lg font-semibold"
           style={{ color: "var(--foreground-bright)" }}
         >
           Validation
         </h1>
+        <div className="relative flex-1 max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted)" }} />
+          <input
+            type="text"
+            placeholder="Search findings, logs, events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-modern w-full pl-9 pr-8 py-2 text-sm rounded-lg"
+            style={{
+              background: "var(--glass-bg)",
+              border: "1px solid var(--glass-border)",
+              color: "var(--foreground-bright)",
+              outline: "none",
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-80"
+            >
+              <X size={14} style={{ color: "var(--muted)" }} />
+            </button>
+          )}
+        </div>
         <div className="filter-pill">
           <ShieldCheck size={12} />
           Evidence-Based
@@ -234,23 +303,33 @@ export default function ValidationPage({
       {/* Root Cause Hypotheses */}
       <RootCauseSummary hypotheses={hypotheses} />
 
+      {/* No results message */}
+      {allFilteredEmpty && (
+        <div className="glass-card p-8 text-center">
+          <Search size={24} style={{ color: "var(--muted)", margin: "0 auto 8px" }} />
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            No findings match &ldquo;{debouncedQuery}&rdquo;
+          </p>
+        </div>
+      )}
+
       {/* AI Findings */}
-      <AIFindingsCard findings={aiFindings} expandedId={expandedId} onToggle={toggle} />
+      <AIFindingsCard findings={fAiFindings} expandedId={expandedId} onToggle={toggle} />
 
       {/* Pod Issues (core triage) */}
-      <PodIssuesSection issues={podIssues} />
+      <PodIssuesSection issues={fPodIssues} />
 
       {/* Crash Loop Analysis */}
-      <CrashLoopSection crashes={crashContexts} expandedId={expandedId} onToggle={toggle} />
+      <CrashLoopSection crashes={fCrashContexts} expandedId={expandedId} onToggle={toggle} />
 
       {/* Event Escalation Patterns */}
-      <EventEscalationSection escalations={eventEscalations} expandedId={expandedId} onToggle={toggle} />
+      <EventEscalationSection escalations={fEventEscalations} expandedId={expandedId} onToggle={toggle} />
 
       {/* Node Issues */}
-      <NodeIssuesSection issues={nodeIssues} />
+      <NodeIssuesSection issues={fNodeIssues} />
 
       {/* Deployment Issues */}
-      <DeploymentIssuesSection issues={deploymentIssues} />
+      <DeploymentIssuesSection issues={fDeploymentIssues} />
 
       {/* What Changed Before Failures */}
       {changeReport && changeReport.correlations.length > 0 && (
@@ -258,37 +337,37 @@ export default function ValidationPage({
       )}
 
       {/* Config Issues */}
-      <ConfigIssuesSection issues={configIssues} />
+      <ConfigIssuesSection issues={fConfigIssues} />
 
       {/* Drift Issues */}
-      <DriftIssuesSection issues={driftIssues} />
+      <DriftIssuesSection issues={fDriftIssues} />
 
       {/* RBAC / Permission Issues */}
-      <RBACIssuesSection issues={rbacIssues} />
+      <RBACIssuesSection issues={fRbacIssues} />
 
       {/* Resource Quota Issues */}
-      <QuotaIssuesSection issues={quotaIssues} />
+      <QuotaIssuesSection issues={fQuotaIssues} />
 
       {/* Network Policy Issues */}
-      <NetworkPolicySection issues={networkPolicyIssues} />
+      <NetworkPolicySection issues={fNetworkPolicyIssues} />
 
       {/* DNS Issues */}
-      <DNSIssuesSection issues={dnsIssues} />
+      <DNSIssuesSection issues={fDnsIssues} />
 
       {/* TLS / Certificate Issues */}
-      <TLSIssuesSection issues={tlsIssues} />
+      <TLSIssuesSection issues={fTlsIssues} />
 
       {/* Scheduling Issues */}
-      <SchedulingIssuesSection issues={schedulingIssues} />
+      <SchedulingIssuesSection issues={fSchedulingIssues} />
 
       {/* AI Log Diagnoses */}
-      {logDiagnoses.length > 0 && (
-        <LogDiagnosesSection diagnoses={logDiagnoses} expandedId={expandedId} onToggle={toggle} />
+      {fLogDiagnoses.length > 0 && (
+        <LogDiagnosesSection diagnoses={fLogDiagnoses} expandedId={expandedId} onToggle={toggle} />
       )}
 
       {/* Pod Anomaly Detection */}
-      {podAnomalies.length > 0 && (
-        <AnomalySection anomalies={podAnomalies} />
+      {fPodAnomalies.length > 0 && (
+        <AnomalySection anomalies={fPodAnomalies} />
       )}
 
       {/* Broken Service Dependencies */}
@@ -297,16 +376,16 @@ export default function ValidationPage({
       )}
 
       {/* Warning Events */}
-      <K8sEventsSection events={k8sEvents} />
+      <K8sEventsSection events={fK8sEvents} />
 
       {/* Silence Signals */}
-      <SilenceSignalsSection signals={silenceSignals} />
+      <SilenceSignalsSection signals={fSilenceSignals} />
 
       {/* Uncertainty & Gaps */}
-      <UncertaintySection gaps={uncertaintyGaps} />
+      <UncertaintySection gaps={fUncertaintyGaps} />
 
       {/* Coverage Gaps */}
-      <CoverageGapsSection gaps={coverageGaps} />
+      <CoverageGapsSection gaps={fCoverageGaps} />
     </div>
   );
 }

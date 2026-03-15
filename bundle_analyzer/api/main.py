@@ -47,8 +47,28 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app: The FastAPI application instance.
     """
     logger.info("Bundle Analyzer API starting up")
+
+    # Initialize PostgreSQL connection
+    import os as _os
+    if _os.environ.get("DATABASE_URL") or _os.environ.get("POSTGRES_URL"):
+        try:
+            from bundle_analyzer.db.database import init_db
+            await init_db()
+            logger.info("PostgreSQL database connected")
+        except Exception as exc:
+            logger.warning("Database init failed (running without persistence): {}", exc)
+    else:
+        logger.info("No DATABASE_URL set — running without database persistence")
+
     yield
     # Cleanup: remove temp files for all sessions
+    # Close database connection
+    try:
+        from bundle_analyzer.db.database import close_db
+        await close_db()
+    except Exception:
+        pass
+
     logger.info("Bundle Analyzer API shutting down -- cleaning up sessions")
     from bundle_analyzer.api.deps import get_store
 

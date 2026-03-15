@@ -31,7 +31,12 @@ class BundleInfo(BaseModel):
     filename: str
     status: AnalysisStatusEnum
     uploaded_at: datetime
+    completed_at: datetime | None = None
     metadata: dict[str, Any] | None = None
+    summary: str | None = None
+    finding_count: int = 0
+    critical_count: int = 0
+    warning_count: int = 0
 
 
 class AnalysisStatus(BaseModel):

@@ -6,7 +6,10 @@ extraction (session lookup with 404 handling).
 
 from __future__ import annotations
 
+from typing import AsyncIterator
+
 from fastapi import Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from bundle_analyzer.api.session import BundleSession, SessionStore
 
@@ -20,6 +23,24 @@ def get_store() -> SessionStore:
         The shared SessionStore instance.
     """
     return _store
+
+
+async def get_db() -> AsyncIterator[AsyncSession]:
+    """Yield an async database session, or None if DB is not configured.
+
+    Yields:
+        An AsyncSession for database operations.
+    """
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is not None:
+            async with _session_factory() as session:
+                yield session
+                return
+    except Exception:
+        pass
+    # DB not available — yield None so callers can handle gracefully
+    yield None  # type: ignore[arg-type]
 
 
 def get_session(

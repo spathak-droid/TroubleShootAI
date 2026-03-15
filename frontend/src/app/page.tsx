@@ -1,43 +1,120 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Upload, CheckCircle, Loader2, ArrowRight, Sparkles } from "lucide-react";
-import { uploadBundle } from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Upload,
+  CheckCircle,
+  Loader2,
+  ArrowRight,
+  Sparkles,
+  Clock,
+  AlertTriangle,
+  AlertCircle,
+  FileText,
+  Trash2,
+  ChevronRight,
+} from "lucide-react";
+import { uploadBundle, listBundles, deleteBundle } from "@/lib/api";
+import type { BundleInfo } from "@/lib/types";
+
+function timeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
+function statusColor(status: string): string {
+  switch (status) {
+    case "complete":
+      return "var(--success)";
+    case "error":
+      return "var(--critical)";
+    case "analyzing":
+    case "extracting":
+    case "triaging":
+      return "var(--accent-light)";
+    default:
+      return "var(--muted)";
+  }
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case "complete":
+      return "Complete";
+    case "error":
+      return "Failed";
+    case "analyzing":
+      return "Analyzing...";
+    case "extracting":
+      return "Extracting...";
+    case "triaging":
+      return "Triaging...";
+    case "uploaded":
+      return "Uploaded";
+    default:
+      return status;
+  }
+}
 
 export default function HomePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadedBundle, setUploadedBundle] = useState<{ id: string; filename: string } | null>(null);
+  const [uploadedBundle, setUploadedBundle] = useState<{
+    id: string;
+    filename: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState("");
+  const [bundles, setBundles] = useState<BundleInfo[]>([]);
+  const [loadingBundles, setLoadingBundles] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleFile = useCallback(
-    async (file: File) => {
-      if (
-        !file.name.endsWith(".tar.gz") &&
-        !file.name.endsWith(".tgz")
-      ) {
-        setError("Please upload a .tar.gz or .tgz file");
-        return;
-      }
-      setError(null);
-      setUploading(true);
-      try {
-        const bundle = await uploadBundle(file);
-        setUploadedBundle({ id: bundle.id, filename: bundle.filename });
-        setUploading(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
-        setUploading(false);
-      }
-    },
-    [],
-  );
+  // Load past analyses on mount
+  useEffect(() => {
+    loadBundles();
+  }, []);
+
+  const loadBundles = async () => {
+    try {
+      const data = await listBundles();
+      setBundles(data);
+    } catch {
+      // silently fail — homepage still works for uploads
+    } finally {
+      setLoadingBundles(false);
+    }
+  };
+
+  const handleFile = useCallback(async (file: File) => {
+    if (!file.name.endsWith(".tar.gz") && !file.name.endsWith(".tgz")) {
+      setError("Please upload a .tar.gz or .tgz file");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const bundle = await uploadBundle(file);
+      setUploadedBundle({ id: bundle.id, filename: bundle.filename });
+      setUploading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+      setUploading(false);
+    }
+  }, []);
 
   const handleStartAnalysis = useCallback(() => {
     if (!uploadedBundle) return;
@@ -47,6 +124,20 @@ export default function HomePage() {
     router.push(`/analysis/${uploadedBundle.id}?${qs.toString()}`);
   }, [uploadedBundle, context, router]);
 
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (deletingId) return;
+    setDeletingId(id);
+    try {
+      await deleteBundle(id);
+      setBundles((prev) => prev.filter((b) => b.id !== id));
+    } catch {
+      // ignore
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -54,7 +145,7 @@ export default function HomePage() {
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
-    [handleFile],
+    [handleFile]
   );
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -64,20 +155,27 @@ export default function HomePage() {
 
   const onDragLeave = useCallback(() => setDragging(false), []);
 
+  // Only show bundles that have started or completed analysis (not just uploaded)
+  const visibleBundles = bundles.filter((b) => b.status !== "uploaded");
+
   return (
-    <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-8">
+    <div className="relative z-10 flex min-h-screen flex-col items-center p-8">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="flex w-full max-w-lg flex-col items-center gap-10"
+        className="flex w-full max-w-2xl flex-col items-center gap-10 pt-12"
       >
         {/* Header */}
         <div className="flex flex-col items-center gap-4 text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{
+              delay: 0.1,
+              duration: 0.5,
+              ease: [0.22, 1, 0.36, 1],
+            }}
             className="flex h-16 w-16 items-center justify-center"
           >
             <Image
@@ -96,10 +194,7 @@ export default function HomePage() {
             >
               Bundle Analyzer
             </h1>
-            <p
-              className="mt-2 text-sm"
-              style={{ color: "var(--muted)" }}
-            >
+            <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
               AI-powered support bundle forensics
             </p>
             <p
@@ -115,14 +210,22 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          transition={{
+            duration: 0.5,
+            delay: 0.2,
+            ease: [0.22, 1, 0.36, 1],
+          }}
           className="w-full"
         >
           <div
             onDrop={uploadedBundle ? undefined : onDrop}
             onDragOver={uploadedBundle ? undefined : onDragOver}
             onDragLeave={uploadedBundle ? undefined : onDragLeave}
-            onClick={uploadedBundle ? undefined : () => fileInputRef.current?.click()}
+            onClick={
+              uploadedBundle
+                ? undefined
+                : () => fileInputRef.current?.click()
+            }
             className={`upload-zone flex flex-col items-center justify-center gap-4 p-10 text-center ${
               uploadedBundle ? "uploaded" : ""
             } ${dragging ? "dragging" : ""}`}
@@ -146,30 +249,48 @@ export default function HomePage() {
                 className="flex h-12 w-12 items-center justify-center rounded-xl"
                 style={{ background: "rgba(99, 102, 241, 0.1)" }}
               >
-                <Upload size={24} style={{ color: "var(--accent-light)" }} />
+                <Upload
+                  size={24}
+                  style={{ color: "var(--accent-light)" }}
+                />
               </div>
             )}
 
             <div>
               {uploadedBundle ? (
                 <>
-                  <p className="text-sm font-medium" style={{ color: "var(--success)" }}>
+                  <p
+                    className="text-sm font-medium"
+                    style={{ color: "var(--success)" }}
+                  >
                     {uploadedBundle.filename}
                   </p>
-                  <p className="mt-1 text-xs font-mono" style={{ color: "var(--muted)" }}>
+                  <p
+                    className="mt-1 text-xs font-mono"
+                    style={{ color: "var(--muted)" }}
+                  >
                     ID: {uploadedBundle.id.slice(0, 12)}
                   </p>
                 </>
               ) : uploading ? (
-                <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: "var(--foreground)" }}
+                >
                   Uploading bundle...
                 </p>
               ) : (
                 <>
-                  <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                  <p
+                    className="text-sm font-medium"
+                    style={{ color: "var(--foreground)" }}
+                  >
                     Drop a support bundle here, or click to browse
                   </p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
+                  <p
+                    className="mt-1 text-xs"
+                    style={{ color: "var(--muted)" }}
+                  >
                     Accepts .tar.gz and .tgz files
                   </p>
                 </>
@@ -204,7 +325,11 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          transition={{
+            duration: 0.5,
+            delay: 0.35,
+            ease: [0.22, 1, 0.36, 1],
+          }}
           className="flex w-full flex-col gap-2"
         >
           <label
@@ -212,7 +337,12 @@ export default function HomePage() {
             style={{ color: "var(--muted)" }}
           >
             ISV Context
-            <span className="ml-1 normal-case tracking-normal" style={{ opacity: 0.6 }}>(optional)</span>
+            <span
+              className="ml-1 normal-case tracking-normal"
+              style={{ opacity: 0.6 }}
+            >
+              (optional)
+            </span>
           </label>
           <textarea
             value={context}
@@ -241,18 +371,170 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* Status text */}
-        {uploadedBundle && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-xs"
-            style={{ color: "var(--muted)" }}
-          >
-            Ready to analyze
-          </motion.p>
-        )}
+        {/* Past Analyses */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.45,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          className="w-full"
+        >
+          <div className="mb-4 flex items-center gap-2">
+            <Clock size={14} style={{ color: "var(--muted)" }} />
+            <h2
+              className="text-xs font-medium uppercase tracking-wider"
+              style={{ color: "var(--muted)" }}
+            >
+              Past Analyses
+            </h2>
+          </div>
+
+          {loadingBundles ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2
+                size={20}
+                className="animate-spin"
+                style={{ color: "var(--muted)" }}
+              />
+            </div>
+          ) : visibleBundles.length === 0 ? (
+            <div
+              className="rounded-xl border px-6 py-8 text-center"
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--surface)",
+              }}
+            >
+              <FileText
+                size={24}
+                className="mx-auto mb-2"
+                style={{ color: "var(--muted)", opacity: 0.5 }}
+              />
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                No analyses yet. Upload a bundle to get started.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <AnimatePresence>
+                {visibleBundles.map((bundle, i) => (
+                  <motion.div
+                    key={bundle.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ delay: i * 0.03 }}
+                    onClick={() => {
+                      if (bundle.status === "complete" || bundle.status === "analyzing" || bundle.status === "extracting" || bundle.status === "triaging") {
+                        router.push(`/analysis/${bundle.id}`);
+                      }
+                    }}
+                    className="group flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-3 transition-all hover:border-[var(--accent-light)]/30"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: "var(--surface)",
+                    }}
+                  >
+                    {/* Status indicator */}
+                    <div
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: statusColor(bundle.status) }}
+                    />
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p
+                          className="truncate text-sm font-medium"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          {bundle.filename}
+                        </p>
+                        <span
+                          className="shrink-0 text-[10px] font-medium uppercase tracking-wider"
+                          style={{ color: statusColor(bundle.status) }}
+                        >
+                          {statusLabel(bundle.status)}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-3">
+                        <span
+                          className="text-xs font-mono"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          {bundle.id.slice(0, 8)}
+                        </span>
+                        <span
+                          className="text-xs"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          {timeAgo(bundle.uploaded_at)}
+                        </span>
+                        {bundle.status === "complete" && (bundle.finding_count ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-xs">
+                            {(bundle.critical_count ?? 0) > 0 && (
+                              <span
+                                className="flex items-center gap-0.5"
+                                style={{ color: "var(--critical)" }}
+                              >
+                                <AlertCircle size={10} />
+                                {bundle.critical_count}
+                              </span>
+                            )}
+                            {(bundle.warning_count ?? 0) > 0 && (
+                              <span
+                                className="flex items-center gap-0.5"
+                                style={{ color: "var(--warning, #f59e0b)" }}
+                              >
+                                <AlertTriangle size={10} />
+                                {bundle.warning_count}
+                              </span>
+                            )}
+                            <span style={{ color: "var(--muted)" }}>
+                              {bundle.finding_count} findings
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                      {bundle.summary && (
+                        <p
+                          className="mt-1 line-clamp-1 text-xs"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          {bundle.summary}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        onClick={(e) => handleDelete(e, bundle.id)}
+                        className="rounded-lg p-1.5 opacity-0 transition-opacity hover:bg-[var(--critical)]/10 group-hover:opacity-100"
+                        style={{ color: "var(--muted)" }}
+                        title="Delete"
+                      >
+                        {deletingId === bundle.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
+                      <ChevronRight
+                        size={16}
+                        className="opacity-0 transition-opacity group-hover:opacity-100"
+                        style={{ color: "var(--muted)" }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </motion.div>
       </motion.div>
     </div>
   );

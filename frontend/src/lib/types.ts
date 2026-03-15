@@ -466,7 +466,12 @@ export interface BundleInfo {
   filename: string;
   status: string;
   uploaded_at: string;
-  file_size: number;
+  completed_at?: string;
+  file_size?: number;
+  summary?: string;
+  finding_count?: number;
+  critical_count?: number;
+  warning_count?: number;
 }
 
 export interface AnalysisStatus {

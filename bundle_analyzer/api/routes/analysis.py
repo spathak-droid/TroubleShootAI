@@ -22,6 +22,64 @@ from bundle_analyzer.models import AnalysisResult, EvaluationResult, TriageResul
 router = APIRouter(prefix="/bundles/{bundle_id}", tags=["analysis"])
 
 
+async def _persist_analysis_to_db(session: BundleSession, analysis: AnalysisResult) -> None:
+    """Save completed analysis to the database.
+
+    Args:
+        session: The bundle session.
+        analysis: The completed AnalysisResult.
+    """
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is None:
+            return
+
+        from bundle_analyzer.db.repository import save_analysis_result
+
+        # Count findings by severity
+        findings = getattr(analysis, "findings", []) or []
+        finding_count = len(findings)
+        critical_count = sum(1 for f in findings if getattr(f, "severity", "") == "critical")
+        warning_count = sum(1 for f in findings if getattr(f, "severity", "") == "warning")
+        summary = getattr(analysis, "summary", None)
+
+        # Serialize to dict
+        analysis_dict = analysis.model_dump(mode="json") if hasattr(analysis, "model_dump") else {}
+
+        async with _session_factory() as db:
+            await save_analysis_result(
+                db,
+                bundle_id=session.id,
+                analysis_dict=analysis_dict,
+                summary=summary,
+                finding_count=finding_count,
+                critical_count=critical_count,
+                warning_count=warning_count,
+            )
+    except Exception as exc:
+        logger.warning("Failed to persist analysis to DB: {}", exc)
+
+
+async def _persist_error_to_db(bundle_id: str, error: str) -> None:
+    """Update the database record to reflect a pipeline error.
+
+    Args:
+        bundle_id: The bundle identifier.
+        error: Error message string.
+    """
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is None:
+            return
+
+        from bundle_analyzer.db.repository import update_bundle_status
+
+        async with _session_factory() as db:
+            await update_bundle_status(db, bundle_id, "error", error=error)
+    except Exception as exc:
+        logger.warning("Failed to persist error to DB: {}", exc)
+
+
 async def _run_pipeline(session: BundleSession, context_path: Path | None = None) -> None:
     """Execute the full analysis pipeline as a background task.
 
@@ -91,11 +149,17 @@ async def _run_pipeline(session: BundleSession, context_path: Path | None = None
         session.update_progress("complete", 1.0, "Analysis complete")
         logger.info("Pipeline complete for session {}", session.id)
 
+        # Persist analysis result to database
+        await _persist_analysis_to_db(session, analysis)
+
     except Exception as exc:
         session.status = "error"
         session.error = str(exc)
         session.update_progress("error", session.progress, f"Error: {exc}")
         logger.error("Pipeline failed for session {}: {}", session.id, exc)
+
+        # Update DB status to error
+        await _persist_error_to_db(session.id, str(exc))
 
 
 @router.post("/analyze")
@@ -152,11 +216,15 @@ async def start_analysis(
 
 @router.get("/analysis", response_model=AnalysisResult)
 async def get_analysis(
+    bundle_id: str,
     session: BundleSession = Depends(get_session),
 ) -> Any:
     """Return the full AnalysisResult for a completed analysis.
 
+    Falls back to database if the result is not in memory.
+
     Args:
+        bundle_id: The bundle identifier from the URL path.
         session: The bundle session.
 
     Returns:
@@ -165,13 +233,26 @@ async def get_analysis(
     Raises:
         HTTPException: 404 if analysis has not completed yet.
     """
-    if session.analysis is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Analysis not yet complete. "
-            f"Current status: {session.status}",
-        )
-    return session.analysis
+    if session.analysis is not None:
+        return session.analysis
+
+    # Try loading from database
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is not None:
+            from bundle_analyzer.db.repository import get_bundle_record
+            async with _session_factory() as db:
+                record = await get_bundle_record(db, bundle_id)
+                if record is not None and record.analysis_json is not None:
+                    return record.analysis_json
+    except Exception as exc:
+        logger.warning("Failed to load analysis from DB: {}", exc)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Analysis not yet complete. "
+        f"Current status: {session.status}",
+    )
 
 
 @router.get("/analysis/status", response_model=AnalysisStatus)
