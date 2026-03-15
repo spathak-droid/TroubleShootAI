@@ -337,9 +337,34 @@ async def _run_evaluation(session: BundleSession) -> None:
         session.evaluation_status = "complete"
         logger.info("Validation complete for session {}", session.id)
 
+        # Persist evaluation to DB
+        await _persist_evaluation_to_db(session.id, result)
+
     except Exception as exc:
         session.evaluation_status = "error"
         logger.error("Validation failed for session {}: {}", session.id, exc)
+
+
+async def _persist_evaluation_to_db(bundle_id: str, evaluation: Any) -> None:
+    """Save evaluation result to the database.
+
+    Args:
+        bundle_id: The bundle identifier.
+        evaluation: The EvaluationResult to persist.
+    """
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is None:
+            return
+
+        from bundle_analyzer.db.repository import save_evaluation_result
+
+        eval_dict = evaluation.model_dump(mode="json") if hasattr(evaluation, "model_dump") else {}
+        async with _session_factory() as db:
+            await save_evaluation_result(db, bundle_id, eval_dict)
+        logger.info("Saved evaluation to DB for bundle {}", bundle_id)
+    except Exception as exc:
+        logger.warning("Failed to persist evaluation to DB: {}", exc)
 
 
 @router.post("/evaluate")
@@ -349,6 +374,8 @@ async def start_evaluation(
     """Launch independent evaluation as a background task.
 
     Requires analysis to be complete. Returns current evaluation status.
+    If session was restored from DB (no bundle index on disk), tries to
+    load evaluation from DB instead.
 
     Args:
         session: The bundle session to evaluate.
@@ -368,17 +395,35 @@ async def start_evaluation(
     if session.evaluation_status == "complete" and session.evaluation is not None:
         return {"status": "complete"}
 
+    # If no bundle index (DB-restored session), try loading eval from DB
+    if session.index is None:
+        evaluation = await _load_evaluation_from_db(session.id)
+        if evaluation is not None:
+            session.evaluation = evaluation
+            session.evaluation_status = "complete"
+            return {"status": "complete"}
+        raise HTTPException(
+            status_code=400,
+            detail="Bundle files are no longer on disk (server restarted). "
+            "Validation requires the original bundle to verify evidence. "
+            "Please re-upload and re-analyze the bundle.",
+        )
+
     asyncio.create_task(_run_evaluation(session))
     return {"status": "evaluating"}
 
 
 @router.get("/evaluation", response_model=EvaluationResult)
 async def get_evaluation(
+    bundle_id: str,
     session: BundleSession = Depends(get_session),
 ) -> Any:
     """Return the EvaluationResult for a completed evaluation.
 
+    Falls back to database if not in memory.
+
     Args:
+        bundle_id: The bundle identifier from the URL path.
         session: The bundle session.
 
     Returns:
@@ -387,28 +432,76 @@ async def get_evaluation(
     Raises:
         HTTPException: 404 if evaluation has not completed yet.
     """
-    if session.evaluation is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Evaluation not yet complete. "
-            f"Current status: {session.evaluation_status}",
-        )
-    return session.evaluation
+    if session.evaluation is not None:
+        return session.evaluation
+
+    # Try loading from DB
+    evaluation = await _load_evaluation_from_db(bundle_id)
+    if evaluation is not None:
+        session.evaluation = evaluation
+        session.evaluation_status = "complete"
+        return evaluation
+
+    raise HTTPException(
+        status_code=404,
+        detail="Evaluation not yet complete. "
+        f"Current status: {session.evaluation_status}",
+    )
 
 
 @router.get("/evaluation/status")
 async def get_evaluation_status(
+    bundle_id: str,
     session: BundleSession = Depends(get_session),
 ) -> dict[str, str]:
     """Return the current evaluation status.
 
+    Also checks DB for previously completed evaluations.
+
     Args:
+        bundle_id: The bundle identifier from the URL path.
         session: The bundle session.
 
     Returns:
         Dict with status field.
     """
+    if session.evaluation_status == "complete" and session.evaluation is not None:
+        return {"status": "complete"}
+
+    # Check if evaluation exists in DB
+    if session.evaluation_status == "not_started":
+        evaluation = await _load_evaluation_from_db(bundle_id)
+        if evaluation is not None:
+            session.evaluation = evaluation
+            session.evaluation_status = "complete"
+            return {"status": "complete"}
+
     return {"status": session.evaluation_status}
+
+
+async def _load_evaluation_from_db(bundle_id: str) -> Any:
+    """Try to load evaluation result from the database.
+
+    Args:
+        bundle_id: The bundle identifier.
+
+    Returns:
+        EvaluationResult dict if found, None otherwise.
+    """
+    try:
+        from bundle_analyzer.db.database import _session_factory
+        if _session_factory is None:
+            return None
+
+        from bundle_analyzer.db.repository import get_bundle_record
+
+        async with _session_factory() as db:
+            record = await get_bundle_record(db, bundle_id)
+            if record is not None and record.evaluation_json is not None:
+                return record.evaluation_json
+    except Exception as exc:
+        logger.warning("Failed to load evaluation from DB: {}", exc)
+    return None
 
 
 @router.get("/hypotheses")

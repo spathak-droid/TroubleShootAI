@@ -22,6 +22,7 @@ export function EvaluationSection({
   const [evalStatus, setEvalStatus] = useState<string>("not_started");
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   // Check initial status
   useEffect(() => {
@@ -55,11 +56,18 @@ export function EvaluationSection({
 
   const handleStart = useCallback(async () => {
     setIsStarting(true);
+    setErrorDetail(null);
     try {
       const res = await startEvaluation(bundleId);
       setEvalStatus(res.status);
-    } catch {
+    } catch (err: unknown) {
       setEvalStatus("error");
+      // Extract error detail from API response
+      if (err && typeof err === "object" && "message" in err) {
+        setErrorDetail((err as { message: string }).message);
+      } else if (err instanceof Error) {
+        setErrorDetail(err.message);
+      }
     } finally {
       setIsStarting(false);
     }
@@ -138,6 +146,7 @@ export function EvaluationSection({
 
   // Error state
   if (evalStatus === "error") {
+    const isBundleGone = errorDetail?.includes("no longer on disk") || errorDetail?.includes("re-upload");
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -147,20 +156,24 @@ export function EvaluationSection({
         <div className="flex items-center gap-3 mb-3">
           <XCircle size={18} style={{ color: "var(--critical)" }} />
           <h2 className="text-base font-semibold" style={{ color: "var(--foreground-bright)" }}>
-            Validation Failed
+            {isBundleGone ? "Bundle No Longer Available" : "Validation Failed"}
           </h2>
         </div>
         <p className="text-sm mb-3" style={{ color: "var(--muted)" }}>
-          The evaluation encountered an error. You can try again.
+          {isBundleGone
+            ? "The original bundle files are no longer on disk (server was restarted). Validation needs the raw bundle to verify evidence citations. Re-upload the bundle to run validation."
+            : "The evaluation encountered an error. You can try again."}
         </p>
-        <button
-          onClick={handleStart}
-          disabled={isStarting}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:brightness-110"
-          style={{ background: "var(--border-subtle)", color: "var(--foreground-bright)" }}
-        >
-          Retry Validation
-        </button>
+        {!isBundleGone && (
+          <button
+            onClick={handleStart}
+            disabled={isStarting}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:brightness-110 cursor-pointer"
+            style={{ background: "var(--border-subtle)", color: "var(--foreground-bright)" }}
+          >
+            Retry Validation
+          </button>
+        )}
       </motion.div>
     );
   }
