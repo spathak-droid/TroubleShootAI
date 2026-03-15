@@ -43,8 +43,7 @@ def scrub_analysis_response(data: Any) -> Any:
     for finding in result.get("findings", []):
         _scrub_text_field(finding, "symptom")
         _scrub_text_field(finding, "root_cause")
-        for ev in finding.get("evidence", []):
-            _scrub_text_field(ev, "excerpt")
+        _scrub_evidence_list(finding.get("evidence", []))
         fix = finding.get("fix")
         if fix and isinstance(fix, dict):
             _scrub_text_field(fix, "description")
@@ -56,8 +55,7 @@ def scrub_analysis_response(data: Any) -> Any:
     # Scrub predictions
     for pred in result.get("predictions", []):
         _scrub_text_field(pred, "prevention")
-        for ev in pred.get("evidence", []):
-            _scrub_text_field(ev, "excerpt")
+        _scrub_evidence_list(pred.get("evidence", []))
 
     # Scrub uncertainty gaps
     for gap in result.get("uncertainty", []):
@@ -69,8 +67,7 @@ def scrub_analysis_response(data: Any) -> Any:
     for diag in result.get("log_diagnoses", []):
         _scrub_text_field(diag, "diagnosis")
         _scrub_text_field(diag, "summary")
-        for ev in diag.get("evidence", []):
-            _scrub_text_field(ev, "excerpt")
+        _scrub_evidence_list(diag.get("evidence", []))
 
     # Scrub top-level fields
     _scrub_text_field(result, "root_cause")
@@ -136,8 +133,7 @@ def scrub_findings_list(findings: list[Any]) -> list[dict[str, Any]]:
             continue
         _scrub_text_field(d, "symptom")
         _scrub_text_field(d, "root_cause")
-        for ev in d.get("evidence", []):
-            _scrub_text_field(ev, "excerpt")
+        _scrub_evidence_list(d.get("evidence", []))
         fix = d.get("fix")
         if fix and isinstance(fix, dict):
             _scrub_text_field(fix, "description")
@@ -187,8 +183,7 @@ def scrub_predictions_list(predictions: list[Any]) -> list[dict[str, Any]]:
             result.append(p)
             continue
         _scrub_text_field(d, "prevention")
-        for ev in d.get("evidence", []):
-            _scrub_text_field(ev, "excerpt")
+        _scrub_evidence_list(d.get("evidence", []))
         result.append(d)
     return result
 
@@ -218,13 +213,34 @@ def scrub_uncertainty_list(gaps: list[Any]) -> list[dict[str, Any]]:
     return result
 
 
-def _scrub_text_field(obj: dict[str, Any], key: str) -> None:
-    """Scrub a single text field in a dict, in place.
+def _scrub_evidence_list(evidence: list[Any]) -> None:
+    """Scrub a list of evidence items, handling both dicts and strings.
 
     Args:
-        obj: Dict containing the field.
+        evidence: List of evidence dicts or strings.
+    """
+    for i, ev in enumerate(evidence):
+        if isinstance(ev, dict):
+            _scrub_text_field(ev, "excerpt")
+            _scrub_text_field(ev, "content")
+        elif isinstance(ev, str) and ev:
+            scrubbed, _ = _scrubber.scrub_for_storage(
+                ev, source_type="unknown", source_path="api-response.evidence"
+            )
+            evidence[i] = scrubbed
+
+
+def _scrub_text_field(obj: Any, key: str) -> None:
+    """Scrub a single text field in a dict, in place.
+
+    Safely handles non-dict objects by skipping them.
+
+    Args:
+        obj: Dict containing the field (or any other type, which is skipped).
         key: Field name to scrub.
     """
+    if not isinstance(obj, dict):
+        return
     val = obj.get(key)
     if isinstance(val, str) and val:
         scrubbed, _ = _scrubber.scrub_for_storage(
