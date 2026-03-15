@@ -111,7 +111,22 @@ export function useAnalysisWebSocket(bundleId: string | null) {
           setPageState("ready");
         }
       } catch {
-        if (!cancelled) setPageState("ready");
+        // Status endpoint failed (session not in memory).
+        // Try loading analysis directly from DB.
+        if (cancelled) return;
+        try {
+          const result = await getAnalysis(bundleId) as unknown as Record<string, unknown>;
+          if (cancelled) return;
+          const { summary: s, total } = computeSummary(result);
+          setSummary(s);
+          setFindingsCount(total);
+          setPageState("complete");
+          setProgress(100);
+          setMessage("Analysis complete");
+          setStages(STAGES.map(() => ({ status: "complete" })));
+        } catch {
+          if (!cancelled) setPageState("ready");
+        }
       }
     })();
 
