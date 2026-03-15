@@ -44,16 +44,18 @@ class BundleSession:
         interview_sessions: Active ask sessions keyed by session id.
     """
 
-    def __init__(self, session_id: str, filename: str, bundle_path: Path) -> None:
+    def __init__(self, session_id: str, filename: str, bundle_path: Path, user_id: str | None = None) -> None:
         """Initialize a new bundle session.
 
         Args:
             session_id: Unique identifier for this session.
             filename: Original filename of the uploaded bundle.
             bundle_path: Filesystem path where the bundle was saved.
+            user_id: Firebase UID of the owning user.
         """
         self.id: str = session_id
         self.filename: str = filename
+        self.user_id: str | None = user_id
         self.status: str = "uploaded"
         self.uploaded_at: datetime = datetime.now(UTC)
         self.bundle_path: Path | None = bundle_path
@@ -113,6 +115,7 @@ class SessionStore:
             "id": session.id,
             "filename": session.filename,
             "status": session.status,
+            "user_id": session.user_id,
             "uploaded_at": session.uploaded_at.isoformat(),
             "bundle_path": str(session.bundle_path) if session.bundle_path else None,
             "extracted_root": str(session.extracted_root) if session.extracted_root else None,
@@ -134,6 +137,7 @@ class SessionStore:
                     session_id=data["id"],
                     filename=data["filename"],
                     bundle_path=bundle_path or Path("/dev/null"),
+                    user_id=data.get("user_id"),
                 )
                 session.status = data.get("status", "uploaded")
                 session.uploaded_at = datetime.fromisoformat(data["uploaded_at"])
@@ -146,12 +150,13 @@ class SessionStore:
             except Exception as exc:
                 logger.warning("Failed to restore session from {}: {}", path, exc)
 
-    def create(self, filename: str, bundle_path: Path) -> BundleSession:
+    def create(self, filename: str, bundle_path: Path, user_id: str | None = None) -> BundleSession:
         """Create a new session for an uploaded bundle.
 
         Args:
             filename: Original filename of the uploaded bundle.
             bundle_path: Filesystem path where the bundle was saved.
+            user_id: Firebase UID of the owning user.
 
         Returns:
             The newly created BundleSession.
@@ -161,6 +166,7 @@ class SessionStore:
             session_id=session_id,
             filename=filename,
             bundle_path=bundle_path,
+            user_id=user_id,
         )
         self._sessions[session_id] = session
         self._persist_session(session)

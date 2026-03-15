@@ -40,7 +40,7 @@ async def upload_bundle(
         UploadResponse with the new bundle_id.
     """
     dest = await save_upload(file)
-    session = store.create(filename=file.filename or "bundle.tar.gz", bundle_path=dest)
+    session = store.create(filename=file.filename or "bundle.tar.gz", bundle_path=dest, user_id=user_id)
 
     # Persist to database with user_id
     if db is not None:
@@ -104,10 +104,10 @@ async def list_bundles(
                     )
                 )
 
-            # Add any in-memory sessions not yet in DB
+            # Add any in-memory sessions not yet in DB (same user only)
             db_ids = {r.id for r in records}
             for session in store.list_all():
-                if session.id not in db_ids:
+                if session.id not in db_ids and session.user_id == user_id:
                     results.append(
                         BundleInfo(
                             id=session.id,
@@ -121,9 +121,11 @@ async def list_bundles(
         except Exception as exc:
             logger.warning("DB list failed, falling back to in-memory: {}", exc)
 
-    # Fallback: in-memory session store (no user filtering)
+    # Fallback: in-memory session store — filter by user_id
     results = []
     for session in store.list_all():
+        if session.user_id != user_id:
+            continue
         metadata = None
         if session.index is not None and session.index.metadata is not None:
             metadata = session.index.metadata.model_dump(mode="json")
