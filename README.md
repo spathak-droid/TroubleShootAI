@@ -199,12 +199,39 @@ npm run dev
 ### CLI Usage
 
 ```bash
-# Analyze a bundle directly (outputs HTML report)
+# Analyze a bundle (prints rich terminal report)
 bundle-analyzer analyze ./support-bundle.tar.gz
+
+# Analyze and save an HTML report
+bundle-analyzer analyze ./support-bundle.tar.gz -o report.html
+
+# Compare two bundles (before/after diff)
+bundle-analyzer analyze ./bundle-v1.tar.gz --compare ./bundle-v2.tar.gz
 
 # Start the web server
 bundle-analyzer serve
+
+# Start in dev mode (CORS for frontend on localhost:3000)
+bundle-analyzer serve --dev
 ```
+
+### Using the Included Examples
+
+The repo ships with sample data you can analyze immediately — no cluster needed:
+
+```bash
+# Analyze the included sample bundle (extracted directory)
+bundle-analyzer analyze examples/sample-bundle
+
+# Or use it via the web UI
+bundle-analyzer serve --dev
+# Upload any .tar.gz bundle at http://localhost:3000
+```
+
+See [`examples/`](examples/) for:
+- **`sample-bundle/`** — Pre-extracted bundle with pods, deployments, events, services (good for quick testing)
+- **`demo-cluster/`** — Kind cluster config + 6 failure scenarios (CrashLoop, OOM, ImagePull, Pending, missing ConfigMap, bad probe)
+- **`demo-cluster-advanced/`** — 7 additional failure types (wrong port, missing secret, readiness deadlock, resource quota, PVC pending, init container, label mismatch)
 
 ## Testing
 
@@ -224,10 +251,12 @@ pytest tests/test_e2e_pipeline.py    # Full multi-failure scenarios
 cd frontend && npm run lint
 ```
 
-## Live Test (Generate a Real Bundle)
+## Scripts
+
+### Live Test (Generate a Real Bundle)
 
 ```bash
-# Full run: create Kind cluster + deploy 8 failure scenarios + collect + analyze
+# Full run: create Kind cluster → deploy 8 failure scenarios → collect bundle → analyze
 ./scripts/live_test/run.sh
 
 # Reuse existing cluster
@@ -235,6 +264,16 @@ cd frontend && npm run lint
 
 # Clean up
 ./scripts/live_test/run.sh --cleanup
+```
+
+### Validation & Utilities
+
+```bash
+# Run system validation — measures evidence grounding, confidence scores, finding accuracy
+python scripts/validate_system.py
+
+# Test the security scrubber against any file or directory
+python scripts/scrub_test.py <file_or_directory> [--layer llm|storage] [--strict]
 ```
 
 ## Security Model
@@ -256,26 +295,39 @@ All bundle data passes through a 7-layer security pipeline before reaching any L
 
 ```
 TroubleShootAI/
-├── bundle_analyzer/
-│   ├── ai/                  # AI pipeline
-│   │   ├── analysts/        # Specialized analysts (pod, node, config, log)
-│   │   ├── orchestration/   # Multi-analyst coordinator
-│   │   ├── prompts/         # System & user prompt templates
-│   │   └── client.py        # Multi-provider LLM client
-│   ├── api/                 # FastAPI web server & routes
-│   ├── bundle/              # Streaming extraction & indexing
-│   ├── cli/                 # Typer CLI app
-│   ├── db/                  # PostgreSQL models & repository
-│   ├── graph/               # Dependency graph & chain walking
-│   ├── models/              # Pydantic v2 data contracts
-│   ├── rca/                 # Root cause analysis engines
-│   ├── security/            # 7-layer data protection
-│   └── triage/              # 24 parallel scanners
-├── frontend/                # Next.js 16 React app
-├── scripts/live_test/       # Kind cluster + broken workloads for testing
-├── tests/                   # 295 pytest tests
-│   └── fixtures/            # Sample bundle data
-└── docs/                    # Documentation
+├── bundle_analyzer/           # Core Python package
+│   ├── ai/                    # AI pipeline
+│   │   ├── analysts/          # Specialized analysts (pod, node, config, log)
+│   │   ├── engines/           # Prediction, archaeology, simulation engines
+│   │   ├── orchestration/     # Multi-analyst coordinator
+│   │   ├── prompts/           # System & user prompt templates
+│   │   ├── validation/        # Claim validation passes
+│   │   └── client.py          # Multi-provider LLM client
+│   ├── api/                   # FastAPI web server & routes
+│   ├── bundle/                # Streaming extraction & indexing
+│   ├── cli/                   # CLI app (analyze, serve, diff)
+│   ├── db/                    # PostgreSQL models & repository
+│   ├── graph/                 # Dependency graph & chain walking
+│   ├── models/                # Pydantic v2 data contracts
+│   ├── rca/                   # Root cause analysis & hypothesis engine
+│   ├── security/              # 7-layer data protection
+│   └── triage/                # 24 parallel scanners
+├── frontend/                  # Next.js 16 React dashboard
+├── examples/                  # Demo clusters & sample bundle data
+│   ├── demo-cluster/          # Kind cluster with 6 failure scenarios
+│   ├── demo-cluster-advanced/ # Advanced failure scenarios (7 types)
+│   └── sample-bundle/         # Pre-built sample bundle for testing
+├── scripts/                   # Utility & test scripts
+│   ├── live_test/             # End-to-end test harness (Kind cluster + bundle collection)
+│   ├── validate_system.py     # Evidence grounding & confidence validation
+│   └── scrub_test.py          # Security scrubber testing tool
+├── tests/                     # Pytest test suite (295 tests)
+│   └── fixtures/              # Sample bundle JSON fragments
+└── docs/                      # Documentation
+    ├── repo_audit.md           # Architecture audit & component map
+    ├── implementation_plan.md  # Phase-by-phase implementation history
+    ├── implementation_roadmap.md
+    └── pre_search.md           # Research notes
 ```
 
 ## API Endpoints
@@ -293,6 +345,13 @@ TroubleShootAI/
 | `POST` | `/api/v1/bundles/{id}/interview/{sid}/ask/stream` | Stream AI answers (SSE) |
 | `WS` | `/ws/{id}/progress` | Real-time progress updates |
 | `GET` | `/api/v1/health` | Health check |
+
+## Documentation
+
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — Full system design, all 9 novel features, data models, token budgets
+- [`MY_APPROACH_AND_THOUGHTS.md`](MY_APPROACH_AND_THOUGHTS.md) — Design rationale and engineering philosophy
+- [`docs/repo_audit.md`](docs/repo_audit.md) — Component map and architecture audit
+- [`docs/implementation_plan.md`](docs/implementation_plan.md) — Phase-by-phase build history
 
 ## License
 

@@ -23,7 +23,7 @@ from bundle_analyzer.models import (
 )
 
 # Path to the demo bundle
-DEMO_BUNDLE = Path(__file__).parent.parent / "demo-bundle"
+DEMO_BUNDLE = Path(__file__).parent.parent / "examples" / "sample-bundle"
 
 
 # ---------------------------------------------------------------------------

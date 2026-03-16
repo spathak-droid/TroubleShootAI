@@ -1,25 +1,33 @@
 # My Approach and Thoughts
 
-## The Core Insight
+## The Problem Nobody Has Solved Well
 
-A support bundle is forensic evidence from a crime scene you can never visit. By the time an engineer opens it, the pods have restarted, the node has been drained, the OOM condition is gone. But the evidence is still there — in metadata timestamps, restart counts, condition transitions, and gaps between log entries. Most tools treat a bundle as a flat bag of YAML. Bundle Analyzer treats it as a temporal record: we reconstruct weeks of cluster history from a single snapshot by mining `lastTransitionTime`, `startedAt`, `finishedAt`, and event timestamps. This is temporal archaeology — turning a static dump into an incident timeline.
+Kubernetes support bundles are forensic snapshots from incidents you can never revisit. By the time an engineer opens one, the pods have restarted, the node has been drained, the OOM condition is gone. Yet the evidence is preserved — in metadata timestamps, restart counts, condition transitions, and gaps between log entries. Every existing tool treats a bundle as a flat bag of YAML to keyword-search through. That's like handing a detective a crime scene and telling them to grep for clues.
 
-## Architecture Decisions
+My core insight: **a static bundle snapshot encodes weeks of cluster history if you know where to look.** `lastTransitionTime`, `startedAt`/`finishedAt`, event timestamps, and restart counts together reconstruct an incident timeline no human would manually piece together at 2am.
 
-The system uses a strict two-layer design: deterministic triage first, AI second. Triage runs regex, threshold checks, and structural validation across pods, nodes, events, jobs, storage, and ingress. It catches CrashLoopBackOff, OOMKilled, image pull failures, pending pods, and failed probes in under a second at zero API cost. The AI layer only sees distilled findings, not raw logs. Triage catches 80% of what an engineer finds. AI catches the rest — cascade failures, subtle misconfigurations, the "why did this node go NotReady 47 seconds before that pod got OOMKilled."
+## Architecture: Triage Before Tokens
 
-The AI pipeline runs parallel analysts across fault domains: pod failures, node health, and configuration issues analyzed concurrently. Synthesis cross-correlates outputs to detect cascades — node memory pressure causing evictions causing deployment unavailability. The orchestrator builds its work tree from triage output, so if no storage issues exist, the storage analyst never runs.
+The system enforces a strict two-phase pipeline — deterministic triage first, AI second — because the most expensive mistake in AI tooling is spending tokens on what regex finds in milliseconds.
 
-We chose Textual because bundle analysis is an SSH-first workflow. On a 2am call, you are in a terminal on a jump box. You do not want port forwarding for a web dashboard. The TUI gives you findings, timeline, and forensic interview directly where you are working.
+**Phase 1 (Triage)** runs 12 specialized scanners across fault domains: pods, nodes, events, jobs, storage, ingress, network policies, TLS, crashloops, silence detection, and change correlation. These catch CrashLoopBackOff, OOMKilled, image pull failures, pending pods, certificate expiry, and misconfigured policies — all in under a second at zero API cost, covering ~80% of actionable findings.
 
-## Novel Features
+**Phase 2 (AI Analysis)** receives only distilled findings, never raw logs. Three parallel analysts (pod, node, configuration) run concurrently. A synthesis layer cross-correlates outputs to detect cascade failures — node memory pressure → evictions → deployment unavailability. The orchestrator dynamically skips irrelevant analysts: no storage issues means no storage tokens spent.
 
-Silence detection treats absence of expected data as a finding — a pod with 5 restarts but no previous container logs means missing pre-crash evidence, which is itself diagnostic. Forward predictions extrapolate trends: memory growth rates yield OOM ETAs, disk usage slopes yield time-to-full, restart intervals reveal crashloop trajectory. The uncertainty report states what the bundle cannot tell you — no metrics collector means no CPU history, no previous logs means no pre-crash state. Engineers need analysis boundaries, not just conclusions.
+**Root Cause Analysis** generates hypotheses from correlated evidence, validates claims against bundle data, and produces confidence-scored diagnoses with explicit evidence citations. Every conclusion must be grounded.
 
-## Honest Limitations
+## What Makes This Different
 
-Bundle Analyzer requires an actual support bundle; it cannot query a live cluster. Missing collectors mean missing data, and we say so. AI analysis adds roughly 30 seconds of latency — streaming is not yet implemented. Multi-bundle diff requires both bundles from the same cluster. The tool is as good as the bundle it receives.
+**Temporal archaeology.** We reconstruct timelines from metadata every other tool ignores. A node transitioning NotReady 47 seconds before an OOMKill isn't coincidence — it's causation.
 
-## What I'd Build Next
+**Silence detection.** Absence is signal. A pod with 5 restarts but no previous logs means missing pre-crash evidence. A namespace with deployments but no events means the event buffer rolled. We diagnose what's *missing*.
 
-Streaming AI responses into the TUI so reasoning appears in real time. A plugin system for ISV-specific heuristics — a Postgres operator needs different scanners than a message queue. Slack integration to post findings with one keybinding. A historical bundle store to track cluster health across deployments.
+**Dependency graph walking.** We build resource graphs and walk causal chains (Deployment → ReplicaSet → Pod → Node), correlating failures across ownership boundaries humans trace manually.
+
+**7-layer security.** Bundles contain secrets and infrastructure details. Our pipeline runs pattern detection, entropy-based secret detection, structural Kubernetes scrubbers (preserving diagnostic keys while redacting values), and prompt injection guards treating all log content as untrusted. Every redaction is audit-logged.
+
+## Honest Limitations and What's Next
+
+The tool is exactly as good as the bundle it receives. Missing collectors mean missing data — and we say so through an uncertainty report stating what the bundle *cannot* tell you. I chose honesty about analysis boundaries over hallucinated confidence.
+
+Next: streaming AI reasoning, plugin system for ISV-specific heuristics, historical bundle comparison for degradation tracking, and webhooks for incident response integration.

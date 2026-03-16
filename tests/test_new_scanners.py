@@ -15,7 +15,7 @@ from bundle_analyzer.triage.resource_scanner import ResourceScanner
 from bundle_analyzer.triage.storage_scanner import StorageScanner
 
 SAMPLE_BUNDLE = Path(__file__).parent / "fixtures" / "sample_bundle"
-DEMO_BUNDLE = Path(__file__).parent.parent / "demo-bundle"
+DEMO_BUNDLE = Path(__file__).parent.parent / "examples" / "sample-bundle"
 
 
 @pytest_asyncio.fixture

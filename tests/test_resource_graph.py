@@ -10,7 +10,7 @@ import pytest_asyncio
 from bundle_analyzer.bundle.indexer import BundleIndex
 from bundle_analyzer.graph import ResourceEdge, ResourceGraph, ResourceNode
 
-DEMO_BUNDLE = Path(__file__).parent.parent / "demo-bundle"
+DEMO_BUNDLE = Path(__file__).parent.parent / "examples" / "sample-bundle"
 
 
 @pytest_asyncio.fixture
