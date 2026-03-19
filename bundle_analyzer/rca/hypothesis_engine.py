@@ -28,7 +28,7 @@ class Hypothesis(BaseModel):
     id: str
     title: str
     description: str
-    category: str  # "resource_exhaustion", "config_error", "image_error", "dependency_failure", "scheduling", "dns", "tls", "unknown"
+    category: str  # "resource_exhaustion", "config_error", "image_error", "dependency_failure", "scheduling", "dns", "tls", "admission_control", "probe_failure", "application_error", "escalation", "observability_gap", "change_management", "unknown"
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)  # overwritten by scoring
     supporting_evidence: list[str] = Field(default_factory=list)
     contradicting_evidence: list[str] = Field(default_factory=list)

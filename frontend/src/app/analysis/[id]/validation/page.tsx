@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,10 +18,13 @@ import {
   Globe,
   Clock,
   Eye,
+  FileJson,
+  FileText,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { useDebounce } from "../hooks/useDebounce";
-import { getAnalysis } from "@/lib/api";
+import { getAnalysis, exportJson, exportHtml } from "@/lib/api";
 import { buildAIFindings } from "../shared";
 import type {
   CrashLoopContext,
@@ -103,9 +106,38 @@ export default function ValidationPage({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("root-cause");
   const [searchQuery, setSearchQuery] = useState("");
+  const [exportingJson, setExportingJson] = useState(false);
+  const [exportingHtml, setExportingHtml] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const debouncedQuery = useDebounce(searchQuery, 300);
 
   const toggle = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
+
+  const handleExportJson = useCallback(async () => {
+    if (!bundleId || exportingJson) return;
+    setExportError(null);
+    setExportingJson(true);
+    try {
+      await exportJson(bundleId);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "JSON export failed");
+    } finally {
+      setExportingJson(false);
+    }
+  }, [bundleId, exportingJson]);
+
+  const handleExportHtml = useCallback(async () => {
+    if (!bundleId || exportingHtml) return;
+    setExportError(null);
+    setExportingHtml(true);
+    try {
+      await exportHtml(bundleId);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "HTML export failed");
+    } finally {
+      setExportingHtml(false);
+    }
+  }, [bundleId, exportingHtml]);
 
   function matchesSearch(fields: (string | string[] | null | undefined)[]): boolean {
     if (!debouncedQuery) return true;
@@ -297,7 +329,62 @@ export default function ValidationPage({
           <ShieldCheck size={12} />
           Evidence-Based
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportJson}
+            disabled={exportingJson}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer"
+            style={{
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.2)",
+              color: "var(--accent-light)",
+              opacity: exportingJson ? 0.6 : 1,
+            }}
+            title="Export analysis as JSON"
+          >
+            {exportingJson ? <Loader2 size={12} className="animate-spin" /> : <FileJson size={12} />}
+            JSON
+          </button>
+          <button
+            onClick={handleExportHtml}
+            disabled={exportingHtml}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer"
+            style={{
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.2)",
+              color: "var(--accent-light)",
+              opacity: exportingHtml ? 0.6 : 1,
+            }}
+            title="Export analysis as HTML report"
+          >
+            {exportingHtml ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
+            HTML Report
+          </button>
+        </div>
       </motion.div>
+
+      {/* Export error message */}
+      {exportError && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs"
+          style={{
+            background: "var(--critical-glow)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            color: "var(--critical)",
+          }}
+        >
+          <AlertTriangle size={12} />
+          {exportError}
+          <button
+            onClick={() => setExportError(null)}
+            className="ml-auto hover:opacity-80 cursor-pointer"
+          >
+            <X size={12} />
+          </button>
+        </motion.div>
+      )}
 
       {/* Tab Navigation — hidden when searching */}
       {!debouncedQuery && (
@@ -363,7 +450,7 @@ export default function ValidationPage({
             </div>
           ) : (
             <>
-              <AIFindingsCard findings={fAiFindings} expandedId={expandedId} onToggle={toggle} />
+              <AIFindingsCard findings={fAiFindings} expandedId={expandedId} onToggle={toggle} bundleId={bundleId ?? undefined} />
               <PodIssuesSection issues={fPodIssues} />
               <CrashLoopSection crashes={fCrashContexts} expandedId={expandedId} onToggle={toggle} />
               <NodeIssuesSection issues={fNodeIssues} />
@@ -406,7 +493,7 @@ export default function ValidationPage({
               <>
                 <EvaluationSection bundleId={bundleId} expandedId={expandedId} onToggle={toggle} />
                 <RootCauseSummary hypotheses={hypotheses} />
-                <AIFindingsCard findings={fAiFindings} expandedId={expandedId} onToggle={toggle} />
+                <AIFindingsCard findings={fAiFindings} expandedId={expandedId} onToggle={toggle} bundleId={bundleId ?? undefined} />
                 {fAiFindings.length === 0 && hypotheses.length === 0 && (
                   <EmptyTabMessage message="No AI findings or hypotheses generated for this bundle." />
                 )}

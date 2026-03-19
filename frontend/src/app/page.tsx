@@ -17,6 +17,7 @@ import {
   Trash2,
   ChevronRight,
   LogOut,
+  GitCompare,
 } from "lucide-react";
 import { uploadBundle, listBundles, deleteBundle } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -354,6 +355,30 @@ export default function HomePage() {
               }}
             />
           </div>
+        </motion.div>
+
+        {/* Compare Bundles link */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.25,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
+          <button
+            onClick={() => router.push("/compare")}
+            className="flex cursor-pointer items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all"
+            style={{
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.2)",
+              color: "var(--accent-light)",
+            }}
+          >
+            <GitCompare size={16} />
+            Compare Bundles
+          </button>
         </motion.div>
 
         {error && (

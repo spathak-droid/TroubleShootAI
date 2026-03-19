@@ -11,7 +11,7 @@ import {
   Database,
 } from "lucide-react";
 import { STAGES } from "./constants";
-import { FlowVisualization, PipelineStepper, SummaryCards } from "./components";
+import { CoverageComparisonPanel, FlowVisualization, PipelineStepper, SummaryCards } from "./components";
 import { useAnalysisWebSocket } from "./hooks";
 
 export default function AnalysisPage({
@@ -171,6 +171,11 @@ export default function AnalysisPage({
       {/* Summary cards (only when complete) */}
       {isDone && summary && (
         <SummaryCards summary={summary} bundleId={bundleId} />
+      )}
+
+      {/* Coverage comparison: What Troubleshoot.sh Missed */}
+      {isDone && (
+        <CoverageComparisonPanel bundleId={bundleId} />
       )}
 
       {/* Failed retry */}

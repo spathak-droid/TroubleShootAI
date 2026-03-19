@@ -16,7 +16,7 @@ from bundle_analyzer.models.triage import (
     TLSIssue,
 )
 from bundle_analyzer.models.troubleshoot import TriageResult
-from bundle_analyzer.rca.rules.base import RCARule, all_pods, build_hypothesis
+from bundle_analyzer.rca.rules.base import RCARule, all_pods, build_hypothesis, log_intel_pods
 
 
 # ── Rule 2: CrashLoopBackOff + connection refused -> Dependency ───────────
@@ -187,21 +187,52 @@ def _match_network_isolation(triage: TriageResult) -> list[list[Any]]:
     deny_all = [np for np in np_issues if np.issue_type in ("deny_all_ingress", "deny_all_egress")]
     if not deny_all:
         return []
+
+    deny_namespaces = {np.namespace for np in deny_all}
+
+    # Include any pod with connection-related errors (not just CrashLoopBackOff)
     connection_errors = [
         p for p in all_pods(triage)
-        if p.issue_type == "CrashLoopBackOff"
-        and any(kw in (p.message or "").lower() for kw in ("connection refused", "timeout", "unreachable"))
+        if any(kw in (p.message or "").lower() for kw in ("connection refused", "timeout", "unreachable"))
+        and p.namespace in deny_namespaces
     ]
-    return [[deny_all, connection_errors]]
+
+    # Also check DNS issues in affected namespaces
+    dns_in_ns = [
+        d for d in triage.dns_issues
+        if d.namespace in deny_namespaces
+    ]
+
+    # Check log_intelligence for DNS/connection failures in affected namespaces
+    log_failures: list[tuple[str, Any]] = []
+    for ns in deny_namespaces:
+        for key, pod_intel in log_intel_pods(triage, ns):
+            containers = getattr(pod_intel, "containers", [])
+            for container in containers:
+                if getattr(container, "has_dns_failures", False) or getattr(container, "has_connection_errors", False):
+                    log_failures.append((key, pod_intel))
+                    break
+
+    return [[deny_all, connection_errors, dns_in_ns, log_failures]]
 
 
 def _hyp_network_isolation(groups: list[list[Any]]) -> dict[str, Any]:
     np_issues = groups[0][0]
     conn_pods = groups[0][1]
+    dns_issues = groups[0][2] if len(groups[0]) > 2 else []
+    log_failures = groups[0][3] if len(groups[0]) > 3 else []
+
     evidence = [f"NetworkPolicy: {n.namespace}/{n.policy_name} — {n.issue_type}" for n in np_issues]
     evidence += [f"{p.namespace}/{p.pod_name}: {p.message}" for p in conn_pods[:5]]
+    if dns_issues:
+        evidence += [f"DNS issue in policy namespace: {d.namespace}/{d.resource_name} — {d.message[:80]}" for d in dns_issues[:3]]
+    if log_failures:
+        evidence += [f"Log-confirmed failure: {key}" for key, _ in log_failures[:3]]
+
     resources = [f"{n.namespace}/{n.policy_name}" for n in np_issues]
     resources += [f"{p.namespace}/{p.pod_name}" for p in conn_pods]
+    resources += [key for key, _ in log_failures]
+
     return build_hypothesis(
         title="Network Policy May Be Isolating Pods",
         description=(
@@ -210,10 +241,11 @@ def _hyp_network_isolation(groups: list[list[Any]]) -> dict[str, Any]:
         ),
         category="dependency_failure",
         supporting_evidence=evidence,
-        affected_resources=resources,
+        affected_resources=list(set(resources)),
         suggested_fixes=[
             "Review deny-all network policies and add appropriate allow rules",
             "Check if pods need ingress/egress rules for their dependencies",
+            "Add egress rule allowing DNS traffic to kube-system port 53 (TCP and UDP)",
             "Verify DNS traffic (port 53) is allowed through network policies",
         ],
     )

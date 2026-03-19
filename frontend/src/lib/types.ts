@@ -501,6 +501,37 @@ export interface InterviewAnswer {
   suggested_questions?: string[];
 }
 
+// ─── Diff models ────────────────────────────────────────────────
+
+export interface DiffFinding {
+  status: "new" | "resolved" | "worsened" | "unchanged";
+  category: string;
+  resource: string;
+  description: string;
+  before_detail: string;
+  after_detail: string;
+}
+
+export interface DiffResult {
+  summary: string;
+  new_findings: DiffFinding[];
+  resolved_findings: DiffFinding[];
+  worsened_findings: DiffFinding[];
+  unchanged_findings: DiffFinding[];
+  resource_delta: Record<string, number>;
+}
+
+// ─── Simulation models ──────────────────────────────────────────
+
+export interface SimulationResult {
+  fix_resolves: string[];
+  fix_creates: string[];
+  residual_issues: string[];
+  recovery_timeline: string;
+  manual_steps_after: string[];
+  confidence: number;
+}
+
 // ─── Evaluation models ──────────────────────────────────────────
 
 export interface DependencyLink {
@@ -558,4 +589,73 @@ export interface EvaluationResult {
   cross_cutting_concerns: string[];
   evaluation_summary: string;
   evaluation_duration_seconds: number;
+}
+
+// ─── Dependency Graph models ─────────────────────────────────────
+
+export interface CausalStep {
+  resource: string;
+  observation: string;
+  evidence_file: string;
+  evidence_excerpt: string;
+}
+
+export interface CausalChain {
+  id: string;
+  symptom: string;
+  symptom_resource: string;
+  steps: CausalStep[];
+  root_cause: string | null;
+  confidence: number;
+  ambiguous: boolean;
+  needs_ai: boolean;
+  related_resources: string[];
+}
+
+export interface GraphNode {
+  id: string;
+  type: string;
+  name: string;
+  namespace: string;
+  status: string;
+  severity?: string;
+  symptom?: string;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  relationship: string;
+}
+
+export interface DependencyGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  causal_chains: CausalChain[];
+}
+
+// ─── Coverage Comparison models ──────────────────────────────────
+
+export interface TroubleshootFoundItem {
+  name: string;
+  analyzer_type: string;
+  severity: "critical" | "warning" | "info";
+  title: string;
+  detail: string;
+}
+
+export interface TroubleshootAIFoundItem {
+  type: string;
+  resource: string;
+  severity: "critical" | "warning" | "info";
+  description: string;
+}
+
+export interface CoverageComparison {
+  troubleshoot_found: TroubleshootFoundItem[];
+  troubleshootai_found: TroubleshootAIFoundItem[];
+  missed_by_troubleshoot: TroubleshootAIFoundItem[];
+  troubleshoot_count: number;
+  troubleshootai_count: number;
+  gap_count: number;
 }

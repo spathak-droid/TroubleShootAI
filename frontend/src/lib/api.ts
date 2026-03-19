@@ -2,10 +2,14 @@ import type {
   BundleInfo,
   AnalysisResult,
   AnalysisStatus,
+  CoverageComparison,
+  DependencyGraph,
+  DiffResult,
   EvaluationResult,
   Finding,
   HistoricalEvent,
   PredictedFailure,
+  SimulationResult,
   UncertaintyGap,
   InterviewSession,
   InterviewAnswer,
@@ -114,6 +118,46 @@ export async function getUncertainty(
   id: string,
 ): Promise<UncertaintyGap[]> {
   return request<UncertaintyGap[]>(`/api/v1/bundles/${id}/uncertainty`);
+}
+
+// ─── Dependency Graph ────────────────────────────────
+
+export async function getDependencyGraph(
+  id: string,
+): Promise<DependencyGraph> {
+  return request<DependencyGraph>(`/api/v1/bundles/${id}/graph`);
+}
+
+// ─── Coverage Comparison ─────────────────────────────
+
+export async function getCoverageComparison(
+  id: string,
+): Promise<CoverageComparison> {
+  return request<CoverageComparison>(`/api/v1/bundles/${id}/coverage-comparison`);
+}
+
+// ─── Fix Simulation ─────────────────────────────────
+
+export async function simulateFix(
+  bundleId: string,
+  findingId: string,
+  fixIndex: number = 0,
+): Promise<SimulationResult> {
+  return request<SimulationResult>(`/api/v1/bundles/${bundleId}/simulate-fix`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ finding_id: findingId, fix_index: fixIndex }),
+  });
+}
+
+// ─── Diff / Compare ─────────────────────────────────
+
+export async function compareBundles(beforeId: string, afterId: string): Promise<DiffResult> {
+  return request<DiffResult>("/api/v1/diff", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ before_bundle_id: beforeId, after_bundle_id: afterId }),
+  });
 }
 
 // ─── Evaluation ─────────────────────────────────────

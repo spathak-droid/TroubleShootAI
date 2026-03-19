@@ -9,10 +9,12 @@ export function AIFindingsCard({
   findings,
   expandedId,
   onToggle,
+  bundleId,
 }: {
   findings: DisplayFinding[];
   expandedId: string | null;
   onToggle: (id: string) => void;
+  bundleId?: string;
 }) {
   if (findings.length === 0) return null;
 
@@ -63,7 +65,7 @@ export function AIFindingsCard({
                 />
               </div>
               <AnimatePresence>
-                {isOpen && <FindingInline finding={f} />}
+                {isOpen && <FindingInline finding={f} bundleId={bundleId} />}
               </AnimatePresence>
             </div>
           );

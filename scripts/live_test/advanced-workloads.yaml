@@ -1,0 +1,337 @@
+# =============================================================================
+# ADVANCED BROKEN WORKLOADS — Real ISV Support Scenarios
+# These represent actual support tickets ISV customers file.
+# =============================================================================
+
+---
+# ── Scenario 1: Webhook Admission Failure Blocking Deployments ────────────
+# ValidatingWebhook points to a non-existent service with failurePolicy: Fail.
+# Any deployment CREATE/UPDATE in default namespace will be rejected.
+apiVersion: v1
+kind: Service
+metadata:
+  name: dead-webhook-svc
+  namespace: default
+spec:
+  selector:
+    app: does-not-exist-webhook
+  ports:
+    - port: 443
+      targetPort: 8443
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: broken-admission-webhook
+webhooks:
+  - name: validate.broken.example.com
+    clientConfig:
+      service:
+        name: dead-webhook-svc
+        namespace: default
+        path: /validate
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["configmaps"]
+        scope: "Namespaced"
+    namespaceSelector:
+      matchLabels:
+        webhook-test: "true"
+    failurePolicy: Fail
+    sideEffects: None
+    admissionReviewVersions: ["v1"]
+---
+# Label a namespace to trigger the webhook
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webhook-test
+  labels:
+    webhook-test: "true"
+
+---
+# ── Scenario 2: PDB Deadlock Blocking Node Drain ─────────────────────────
+# PDB requires minAvailable=2 but deployment only has 2 replicas.
+# Node drain will hang forever.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: default
+  labels:
+    app: payment-service
+    scenario: pdb-deadlock
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment
+          image: nginx:1.25-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payment-pdb-too-strict
+  namespace: default
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: payment-service
+
+---
+# ── Scenario 3: Service with Failing Readiness + Stale Endpoints ──────────
+# App returns 500 on readiness probe but container stays Running.
+# Service endpoints flap, causing intermittent 502s for callers.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flaky-api
+  namespace: default
+  labels:
+    app: flaky-api
+    scenario: stale-endpoints
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flaky-api
+  template:
+    metadata:
+      labels:
+        app: flaky-api
+    spec:
+      containers:
+        - name: api
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              # Start an HTTP server that fails readiness 50% of the time
+              while true; do
+                echo "HTTP/1.1 503 Service Unavailable\r\n\r\nreadiness: failing" | nc -l -p 8080 -q 1 2>/dev/null || true
+              done
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            failureThreshold: 1
+            successThreshold: 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flaky-api
+  namespace: default
+spec:
+  selector:
+    app: flaky-api
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+# ── Scenario 4: NetworkPolicy Lockout (deny-all blocks DNS) ──────────────
+# Default-deny in a namespace blocks ALL traffic including DNS.
+# Pods are Running but can't resolve any service names.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: locked-down
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-everything
+  namespace: locked-down
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  # No rules = deny all ingress AND egress, including DNS
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-processor
+  namespace: locked-down
+  labels:
+    app: order-processor
+    scenario: network-lockout
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-processor
+  template:
+    metadata:
+      labels:
+        app: order-processor
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                echo "[$(date)] Trying to reach API..."
+                wget -q -T 3 http://api-gateway.locked-down.svc.cluster.local/health 2>&1 || echo "FAILED: Cannot reach api-gateway - DNS or network blocked"
+                sleep 5
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: locked-down
+spec:
+  selector:
+    app: api-gateway-does-not-exist
+  ports:
+    - port: 80
+
+---
+# ── Scenario 5: Namespace Stuck in Terminating (Stale Finalizer) ──────────
+# CRD with a finalizer, then the controller that removes the finalizer is gone.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stale-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stuck-resource
+  namespace: stale-app
+  finalizers:
+    - custom-operator.example.com/cleanup
+data:
+  note: "This resource has a finalizer but no controller to remove it"
+
+---
+# ── Scenario 6: Database Connection Pool Exhaustion ──────────────────────
+# Too many app replicas for a small DB connection limit.
+# Pods are Running but log "connection refused" or "too many connections".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-db
+  namespace: default
+  labels:
+    app: inventory-db
+    scenario: pool-exhaustion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-db
+  template:
+    metadata:
+      labels:
+        app: inventory-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_PASSWORD
+              value: "testpass123"
+            - name: POSTGRES_DB
+              value: "inventory"
+          args:
+            - -c
+            - max_connections=10
+          ports:
+            - containerPort: 5432
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-db
+  namespace: default
+spec:
+  selector:
+    app: inventory-db
+  ports:
+    - port: 5432
+---
+# 8 replicas each opening connections — will exceed max_connections=10
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  namespace: default
+  labels:
+    app: inventory-api
+    scenario: pool-exhaustion
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: inventory-api
+  template:
+    metadata:
+      labels:
+        app: inventory-api
+    spec:
+      containers:
+        - name: api
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Starting inventory-api, connecting to DB..."
+              while true; do
+                # Try to connect to postgres — will fail when pool exhausted
+                echo "QUIT" | nc -w 2 inventory-db 5432 2>&1 || echo "[$(date)] ERROR: Connection to inventory-db:5432 refused - too many connections"
+                sleep 3
+              done
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://postgres:testpass123@inventory-db:5432/inventory"
+            - name: DB_POOL_SIZE
+              value: "5"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi

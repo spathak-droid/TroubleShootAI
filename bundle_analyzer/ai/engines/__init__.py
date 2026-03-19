@@ -11,6 +11,7 @@ from bundle_analyzer.ai.engines.prediction import (
     Prediction,
 )
 from bundle_analyzer.ai.engines.silence import SilenceDetectionEngine
+from bundle_analyzer.ai.engines.simulation import FixSimulationEngine
 from bundle_analyzer.ai.engines.uncertainty import UncertaintyReporter
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "ForwardPredictionEngine",
     "Prediction",
     "SilenceDetectionEngine",
+    "FixSimulationEngine",
     "UncertaintyReporter",
 ]

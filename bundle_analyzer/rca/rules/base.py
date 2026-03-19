@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from bundle_analyzer.models.triage import PodIssue
+from bundle_analyzer.models.triage import K8sEvent, PodIssue
 from bundle_analyzer.models.troubleshoot import TriageResult
 
 
@@ -73,3 +73,22 @@ def build_hypothesis(
     }
     result.update(extra)
     return result
+
+
+def events_by_reason(triage: TriageResult, reasons: set[str]) -> list[K8sEvent]:
+    """Filter warning_events where event.reason matches any reason (case-insensitive)."""
+    lower_reasons = {r.lower() for r in reasons}
+    return [
+        e for e in triage.warning_events
+        if e.reason.lower() in lower_reasons
+    ]
+
+
+def log_intel_pods(triage: TriageResult, namespace: str) -> list[tuple[str, Any]]:
+    """Filter log_intelligence for keys starting with namespace/."""
+    prefix = f"{namespace}/"
+    return [
+        (key, val)
+        for key, val in triage.log_intelligence.items()
+        if key.startswith(prefix)
+    ]

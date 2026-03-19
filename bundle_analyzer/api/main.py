@@ -31,6 +31,7 @@ from bundle_analyzer.api.routes import (
     export,
     findings,
     interview,
+    simulate,
     ws,
 )
 
@@ -128,6 +129,7 @@ def create_app() -> FastAPI:
     app.include_router(interview.router, prefix=api_prefix)
     app.include_router(diff.router, prefix=api_prefix)
     app.include_router(export.router, prefix=api_prefix)
+    app.include_router(simulate.router, prefix=api_prefix)
     app.include_router(ws.router, prefix=api_prefix)
 
     # Health check

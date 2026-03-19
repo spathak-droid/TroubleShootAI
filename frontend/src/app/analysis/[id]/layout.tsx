@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Clock,
+  GitBranch,
   MessageSquare,
   ChevronLeft,
   ShieldCheck,
@@ -46,6 +47,11 @@ export default function AnalysisLayout({
       label: "Troubleshoot Findings",
       href: `${basePath}/troubleshoot`,
       icon: <Wrench size={18} />,
+    },
+    {
+      label: "Dependency Graph",
+      href: `${basePath}/graph`,
+      icon: <GitBranch size={18} />,
     },
     {
       label: "Timeline",

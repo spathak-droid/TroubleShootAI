@@ -214,7 +214,12 @@ export default function AskPage({
         )}
 
         <div className="flex flex-col gap-4">
-          {messages.map((msg, i) => (
+          {messages.map((msg, i) => {
+            // Skip rendering empty assistant message while loading dots are shown
+            const isEmptyStreaming = msg.role === "assistant" && msg.content === "" && loading && i === messages.length - 1;
+            if (isEmptyStreaming) return null;
+
+            return (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 5 }}
@@ -253,7 +258,8 @@ export default function AskPage({
                 </div>
               )}
             </motion.div>
-          ))}
+            );
+          })}
 
           {loading && messages.length > 0 && messages[messages.length - 1]?.content === "" && (
             <div className="flex items-center gap-3">
